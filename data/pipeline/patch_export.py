@@ -54,7 +54,14 @@ def _export_patch(row, project: str, out_dir: Path) -> str | None:
     lon, lat = row["lon"], row["lat"]
     fname    = out_dir / f"{row['region']}_{int(row['label'])}_{row.name}.npy"
     if fname.exists():
-        return str(fname)
+        try:
+            arr = np.load(fname)
+            if arr.shape == (10, 64, 64):
+                return str(fname)
+            else:
+                fname.unlink(missing_ok=True)
+        except Exception:
+            fname.unlink(missing_ok=True)
 
     try:
         ee.Initialize(project=project)   # safe to call multiple times

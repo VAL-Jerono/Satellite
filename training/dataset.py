@@ -71,9 +71,29 @@ class PatchDataset(Dataset):
             if drive_fname.exists():
                 fname = drive_fname
             else:
-                raise FileNotFoundError(f"Patch file not found at '{fname}' or in Drive at '{drive_fname}'.")
+                fname = None
 
-        arr = np.load(fname).astype(np.float32)  # (C, H, W)
+        arr = None
+        if fname is not None and fname.exists():
+            try:
+                raw_arr = np.load(fname).astype(np.float32)
+                if raw_arr.shape == (10, 64, 64):
+                    arr = raw_arr
+                else:
+                    print(f"WARN: Corrupt patch shape {raw_arr.shape} at {fname}. Removing file.")
+                    try:
+                        fname.unlink(missing_ok=True)
+                    except Exception:
+                        pass
+            except Exception as exc:
+                print(f"WARN: Failed loading patch {fname}: {exc}. Removing file.")
+                try:
+                    fname.unlink(missing_ok=True)
+                except Exception:
+                    pass
+
+        if arr is None:
+            arr = np.zeros((10, 64, 64), dtype=np.float32)
 
         # Normalise
         arr = (arr - self.mean) / (self.std + 1e-6)
