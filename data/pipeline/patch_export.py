@@ -111,41 +111,37 @@ def export_patches(project: str, resume: bool = True, workers: int = 8):
     PATCHES_DIR.mkdir(parents=True, exist_ok=True)
     manifest_path = PATCHES_DIR / "manifest.csv"
 
-    if manifest_path.exists() and resume:
-        done = set(pd.read_csv(manifest_path)["filename"])
-    else:
-        done = set()
-
+    # Find which patches still need to be downloaded
     rows_todo = df[~df.apply(
         lambda r: (PATCHES_DIR / f"{r['region']}_{int(r['label'])}_{r.name}.npy").exists(),
         axis=1
     )]
     print(f"Patches to download: {len(rows_todo)} / {len(df)}")
 
-    records = []
-    with ThreadPoolExecutor(max_workers=workers) as pool:
-        futures = {
-            pool.submit(_export_patch, row, project, PATCHES_DIR): idx
-            for idx, row in rows_todo.iterrows()
-        }
-        for i, fut in enumerate(as_completed(futures)):
-            fname = fut.result()
-            if fname:
-                idx = futures[fut]
-                r   = df.loc[idx]
-                records.append(dict(
-                    filename=fname, region=r["region"], label=int(r["label"]),
-                    lon=r["lon"], lat=r["lat"], weight=r["weight"],
-                ))
-            if (i + 1) % 100 == 0:
-                print(f"  {i+1}/{len(futures)} done")
+    if len(rows_todo) > 0:
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            futures = {
+                pool.submit(_export_patch, row, project, PATCHES_DIR): idx
+                for idx, row in rows_todo.iterrows()
+            }
+            for i, fut in enumerate(as_completed(futures)):
+                fut.result()
+                if (i + 1) % 100 == 0 or (i + 1) == len(futures):
+                    print(f"  {i+1}/{len(futures)} downloaded")
 
-    new_df = pd.DataFrame(records)
-    if manifest_path.exists():
-        old_df = pd.read_csv(manifest_path)
-        new_df = pd.concat([old_df, new_df], ignore_index=True)
-    new_df.to_csv(manifest_path, index=False)
-    print(f"Manifest saved: {manifest_path} ({len(new_df)} patches)")
+    # Rebuild manifest index for all patch .npy files present on disk
+    manifest_records = []
+    for idx, r in df.iterrows():
+        fname = PATCHES_DIR / f"{r['region']}_{int(r['label'])}_{idx}.npy"
+        if fname.exists():
+            manifest_records.append(dict(
+                filename=str(fname), region=r["region"], label=int(r["label"]),
+                lon=r["lon"], lat=r["lat"], weight=r["weight"],
+            ))
+
+    manifest_df = pd.DataFrame(manifest_records)
+    manifest_df.to_csv(manifest_path, index=False)
+    print(f"Manifest saved: {manifest_path} ({len(manifest_df)} patches indexed)")
 
 
 if __name__ == "__main__":

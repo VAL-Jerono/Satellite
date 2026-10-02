@@ -56,21 +56,21 @@ def _buffer_filter(df: pd.DataFrame, train_idx, test_idx) -> np.ndarray:
 
 def build_splits(project: str = "propertysatellite"):
     manifest_path = MANIFEST
-    if not manifest_path.exists():
+    if not manifest_path.exists() or manifest_path.stat().st_size == 0:
         drive_patches = Path("/content/drive/MyDrive/land_atlas_baseline/patches")
-        if (drive_patches / "manifest.csv").exists():
+        if (drive_patches / "manifest.csv").exists() and (drive_patches / "manifest.csv").stat().st_size > 0:
             MANIFEST.parent.mkdir(parents=True, exist_ok=True)
             import shutil
             shutil.copytree(drive_patches, MANIFEST.parent, dirs_exist_ok=True)
             print(f"Copied patches & manifest from Drive: {drive_patches} -> {MANIFEST.parent}")
         else:
-            print(f"Patch manifest not found at {manifest_path}. Running patch export...")
+            print(f"Patch manifest not found or empty at {manifest_path}. Running patch export...")
             from data.pipeline.patch_export import export_patches
             export_patches(project=project, resume=True, workers=12)
 
-    if not manifest_path.exists():
+    if not manifest_path.exists() or manifest_path.stat().st_size == 0:
         raise FileNotFoundError(
-            f"Patch manifest missing: '{manifest_path}'.\n"
+            f"Patch manifest missing or empty: '{manifest_path}'.\n"
             "Patch export did not complete or patch files are missing. "
             "Please run: python -m data.pipeline.patch_export --project YOUR_GCP_PROJECT"
         )
