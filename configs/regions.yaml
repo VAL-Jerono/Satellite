@@ -31,9 +31,9 @@ classes:
 
 # RGB display colours (hex, for frontend)
 class_colours:
-  built_up:   "#E05A3A"
-  cropland:   "#F5D76E"
-  trees:      "#27AE60"
-  grass_shrub:"#A9D18E"
-  water:      "#2980B9"
-  bare:       "#C8A96E"
+  built_up:    "#E05A3A"
+  cropland:    "#F5D76E"
+  trees:       "#27AE60"
+  grass_shrub: "#A9D18E"
+  water:       "#2980B9"
+  bare:        "#C8A96E"
