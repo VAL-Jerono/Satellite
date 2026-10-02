@@ -58,20 +58,25 @@ def _export_patch(row, project: str, out_dir: Path) -> str | None:
 
     try:
         ee.Initialize(project=project)   # safe to call multiple times
-        geom  = ee.Geometry.Point([lon, lat]).buffer(HALF_M).bounds()
-        img   = _s2_composite(geom)
-        arr   = np.array(img.sampleRectangle(
-            region=geom, defaultValue=0
-        ).get("array").getInfo(), dtype=np.float32)
-        # arr shape: (H, W, C) → (C, H, W)
-        arr = arr.transpose(2, 0, 1)
-        # Resize to exact patch_size if EE returns slightly different dims
-        if arr.shape[1] != PATCH_PX or arr.shape[2] != PATCH_PX:
-            import cv2
-            arr = np.stack([
-                cv2.resize(arr[c], (PATCH_PX, PATCH_PX), interpolation=cv2.INTER_LINEAR)
-                for c in range(arr.shape[0])
-            ])
+        geom   = ee.Geometry.Point([lon, lat]).buffer(HALF_M).bounds()
+        img    = _s2_composite(geom)
+        sample = img.sampleRectangle(region=geom, defaultValue=0).getInfo()
+        props  = sample.get("properties", sample)
+
+        band_arrays = []
+        import cv2
+        for b in BANDS:
+            raw = props.get(b, sample.get(b))
+            if raw is None:
+                raise KeyError(f"Band {b} missing from GEE sampleRectangle response")
+            b_arr = np.array(raw, dtype=np.float32)
+            if b_arr.ndim != 2:
+                b_arr = b_arr.squeeze()
+            if b_arr.shape[0] != PATCH_PX or b_arr.shape[1] != PATCH_PX:
+                b_arr = cv2.resize(b_arr, (PATCH_PX, PATCH_PX), interpolation=cv2.INTER_LINEAR)
+            band_arrays.append(b_arr)
+
+        arr = np.stack(band_arrays, axis=0)  # shape: (10, 64, 64)
         np.save(fname, arr)
         return str(fname)
     except Exception as exc:
