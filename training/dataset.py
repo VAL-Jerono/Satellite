@@ -46,12 +46,34 @@ class PatchDataset(Dataset):
         self.mean     = _BAND_MEAN[:, None, None]   # (C, 1, 1)
         self.std      = _BAND_STD[:, None, None]
 
+        # Auto-sync patches from Drive if local files are missing after a Colab restart
+        drive_dir = Path("/content/drive/MyDrive/land_atlas_baseline/patches")
+        if drive_dir.exists() and len(self.df) > 0:
+            first_path = Path(self.df.iloc[0]["filename"])
+            if not first_path.exists():
+                print(f"Local patches missing at {first_path.parent}. Restoring from Drive: {drive_dir}...")
+                import shutil
+                first_path.parent.mkdir(parents=True, exist_ok=True)
+                for drive_file in drive_dir.glob("*.npy"):
+                    dest = first_path.parent / drive_file.name
+                    if not dest.exists():
+                        shutil.copy(drive_file, dest)
+                print("Restored patches from Drive.")
+
     def __len__(self) -> int:
         return len(self.df)
 
     def __getitem__(self, idx: int):
         row   = self.df.iloc[idx]
-        arr   = np.load(row["filename"]).astype(np.float32)  # (C, H, W)
+        fname = Path(row["filename"])
+        if not fname.exists():
+            drive_fname = Path("/content/drive/MyDrive/land_atlas_baseline/patches") / fname.name
+            if drive_fname.exists():
+                fname = drive_fname
+            else:
+                raise FileNotFoundError(f"Patch file not found at '{fname}' or in Drive at '{drive_fname}'.")
+
+        arr = np.load(fname).astype(np.float32)  # (C, H, W)
 
         # Normalise
         arr = (arr - self.mean) / (self.std + 1e-6)
