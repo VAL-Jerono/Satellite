@@ -89,14 +89,35 @@ def _feature_image(geom: ee.Geometry) -> ee.Image:
     return med.addBands(ndvi_stats).addBands(elev).addBands(slope).select(FEATURES)
 
 
-def _pull_region(name: str, bbox: list) -> pd.DataFrame:
-    geom = ee.Geometry.Rectangle(bbox)
+CHUNK_DIR = OUT_CSV.parent / f"chunks_{YEAR}_n{PER_CLASS}"
+
+def _get_sub_bboxes(bbox: list, n_split: int = 2) -> list:
+    min_x, min_y, max_x, max_y = bbox
+    xs = np.linspace(min_x, max_x, n_split + 1)
+    ys = np.linspace(min_y, max_y, n_split + 1)
+    boxes = []
+    for i in range(n_split):
+        for j in range(n_split):
+            boxes.append([xs[i], ys[j], xs[i+1], ys[j+1]])
+    return boxes
+
+
+def _pull_sub_tile(name: str, sub_idx: int, sub_bbox: list, points_per_class: int) -> pd.DataFrame:
+    chunk_path = CHUNK_DIR / f"chunk_{name}_sub{sub_idx}.csv"
+    if chunk_path.exists():
+        d_cached = pd.read_csv(chunk_path)
+        print(f"  [Cache hit] {name} sub-tile {sub_idx+1}/4 ({len(d_cached)} rows)")
+        return d_cached
+
+    t0 = time.time()
+    print(f"  Sampling {name} sub-tile {sub_idx+1}/4 ...")
+    geom = ee.Geometry.Rectangle(sub_bbox)
     img  = _feature_image(geom).addBands(_label_image())
 
     fc = img.stratifiedSample(
-        numPoints=0, classBand="label", region=geom, scale=10, seed=SEED,
-        classValues=list(range(K)), classPoints=[PER_CLASS] * K,
-        dropNulls=True, tileScale=4, geometries=True,
+        numPoints=0, classBand="label", region=geom, scale=10, seed=SEED + sub_idx,
+        classValues=list(range(K)), classPoints=[points_per_class] * K,
+        dropNulls=True, tileScale=16, geometries=True,
     )
     feats = _retry(lambda: fc.getInfo())["features"]
     rows  = [
@@ -107,18 +128,44 @@ def _pull_region(name: str, bbox: list) -> pd.DataFrame:
     ]
     df = pd.DataFrame(rows)
     df["region"] = name
+    df["sub_idx"] = sub_idx
+    df.to_csv(chunk_path, index=False)
+    print(f"    -> Saved chunk: {chunk_path} ({len(df)} points in {time.time()-t0:.0f}s)")
+    return df
 
-    # Area-weighted sample weight (Olofsson-style)
-    hist = _retry(lambda: _label_image().reduceRegion(
-        reducer=ee.Reducer.frequencyHistogram(), geometry=geom, scale=100,
-        maxPixels=int(1e10), bestEffort=True, tileScale=4,
-    ).get("label").getInfo())
-    share  = {int(float(k)): v for k, v in hist.items()}
+
+def _pull_region(name: str, bbox: list, n_split: int = 2) -> pd.DataFrame:
+    CHUNK_DIR.mkdir(parents=True, exist_ok=True)
+    sub_bboxes = _get_sub_bboxes(bbox, n_split=n_split)
+    pts_per_sub = max(10, PER_CLASS // (n_split * n_split))
+
+    parts = []
+    for sub_i, sub_b in enumerate(sub_bboxes):
+        parts.append(_pull_sub_tile(name, sub_i, sub_b, pts_per_sub))
+    df = pd.concat(parts, ignore_index=True)
+
+    # Cached WorldCover class frequency histogram
+    hist_path = CHUNK_DIR / f"hist_{name}.json"
+    if hist_path.exists():
+        import json
+        with hist_path.open("r") as f:
+            share = {int(k): v for k, v in json.load(f).items()}
+    else:
+        geom = ee.Geometry.Rectangle(bbox)
+        hist = _retry(lambda: _label_image().reduceRegion(
+            reducer=ee.Reducer.frequencyHistogram(), geometry=geom, scale=100,
+            maxPixels=int(1e10), bestEffort=True, tileScale=16,
+        ).get("label").getInfo())
+        share  = {int(float(k)): v for k, v in hist.items()}
+        import json
+        with hist_path.open("w") as f:
+            json.dump(share, f)
+
     n_samp = df["label"].value_counts().to_dict()
     present= {c: share.get(c, 0) for c in n_samp}
     tot    = sum(present.values())
     df["weight"] = df["label"].map(
-        lambda c: (present[c] / tot) / n_samp[c] if tot > 0 else 1.0
+        lambda c: (present[c] / tot) / n_samp[c] if tot > 0 and n_samp.get(c, 0) > 0 else 1.0
     )
     return df
 
@@ -142,9 +189,9 @@ def pull(project: str, force: bool = False) -> pd.DataFrame:
         parts = []
         for name, bbox in REGIONS.items():
             t0 = time.time()
-            print(f"Sampling {name} …")
+            print(f"--- Sampling region: {name} ---")
             parts.append(_pull_region(name, bbox))
-            print(f"  {len(parts[-1])} rows  ({time.time()-t0:.0f}s)")
+            print(f"Done {name}: {len(parts[-1])} total points in {time.time()-t0:.0f}s\n")
         df = pd.concat(parts, ignore_index=True)
         df.to_csv(OUT_CSV, index=False)
         print(f"Saved {OUT_CSV}  ({df.shape[0]} rows)")
