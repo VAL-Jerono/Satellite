@@ -52,14 +52,12 @@ def build_model(
 
     if backbone == "resnet18":
         m = models.resnet18(weights=weights)
-        # Replace first conv: 3→in_channels, preserve ImageNet weights by averaging
         orig = m.conv1
         new_conv = nn.Conv2d(in_channels, 64, kernel_size=7, stride=2, padding=3, bias=False)
         if use_pretrained:
             with torch.no_grad():
-                # Average pretrained 3-channel weights across new channels
-                new_conv.weight[:] = orig.weight.mean(dim=1, keepdim=True).repeat(1, in_channels, 1, 1) / in_channels
-                new_conv.weight[:, :3, :, :] = orig.weight  # keep original for first 3
+                rep = orig.weight.repeat(1, (in_channels // 3) + 1, 1, 1)[:, :in_channels]
+                new_conv.weight.copy_(rep * (3.0 / in_channels))
         m.conv1 = new_conv
         m.fc = nn.Sequential(
             nn.Dropout(dropout),
@@ -74,8 +72,8 @@ def build_model(
                              padding=orig.padding, bias=orig.bias is not None)
         if use_pretrained:
             with torch.no_grad():
-                new_conv.weight[:] = orig.weight.mean(dim=1, keepdim=True).repeat(1, in_channels, 1, 1) / in_channels
-                new_conv.weight[:, :3, :, :] = orig.weight
+                rep = orig.weight.repeat(1, (in_channels // 3) + 1, 1, 1)[:, :in_channels]
+                new_conv.weight.copy_(rep * (3.0 / in_channels))
         m.features[0][0] = new_conv
         in_feats = m.classifier[1].in_features
         m.classifier = nn.Sequential(
