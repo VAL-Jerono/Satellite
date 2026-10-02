@@ -92,12 +92,27 @@ def export_onnx(model: nn.Module, out_path: str | Path, patch_size: int = 64, in
     dummy = torch.zeros(1, in_channels, patch_size, patch_size)
     out_path = Path(out_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    torch.onnx.export(
-        model, dummy, str(out_path),
-        input_names=["sentinel2_patch"],
-        output_names=["class_logits"],
-        dynamic_axes={"sentinel2_patch": {0: "batch"}, "class_logits": {0: "batch"}},
-        opset_version=_CFG["serving"]["onnx_opset"],
-        export_params=True,
-    )
+
+    def _export():
+        torch.onnx.export(
+            model, dummy, str(out_path),
+            input_names=["sentinel2_patch"],
+            output_names=["class_logits"],
+            dynamic_axes={"sentinel2_patch": {0: "batch"}, "class_logits": {0: "batch"}},
+            opset_version=_CFG["serving"]["onnx_opset"],
+            export_params=True,
+            dynamo=False,
+        )
+
+    try:
+        _export()
+    except (ModuleNotFoundError, Exception) as exc:
+        if "onnxscript" in str(exc) or "onnx" in str(exc).lower():
+            import subprocess, sys
+            print("Installing onnxscript & onnx for ONNX export...")
+            subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", "onnx", "onnxscript"])
+            _export()
+        else:
+            raise exc
+
     print(f"ONNX saved → {out_path}")
