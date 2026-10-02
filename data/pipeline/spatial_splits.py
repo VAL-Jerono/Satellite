@@ -54,8 +54,28 @@ def _buffer_filter(df: pd.DataFrame, train_idx, test_idx) -> np.ndarray:
     return np.array(keep)
 
 
-def build_splits():
-    df = pd.read_csv(MANIFEST)
+def build_splits(project: str = "propertysatellite"):
+    manifest_path = MANIFEST
+    if not manifest_path.exists():
+        drive_patches = Path("/content/drive/MyDrive/land_atlas_baseline/patches")
+        if (drive_patches / "manifest.csv").exists():
+            MANIFEST.parent.mkdir(parents=True, exist_ok=True)
+            import shutil
+            shutil.copytree(drive_patches, MANIFEST.parent, dirs_exist_ok=True)
+            print(f"Copied patches & manifest from Drive: {drive_patches} -> {MANIFEST.parent}")
+        else:
+            print(f"Patch manifest not found at {manifest_path}. Running patch export...")
+            from data.pipeline.patch_export import export_patches
+            export_patches(project=project, resume=True, workers=12)
+
+    if not manifest_path.exists():
+        raise FileNotFoundError(
+            f"Patch manifest missing: '{manifest_path}'.\n"
+            "Patch export did not complete or patch files are missing. "
+            "Please run: python -m data.pipeline.patch_export --project YOUR_GCP_PROJECT"
+        )
+
+    df = pd.read_csv(manifest_path)
     df = _assign_blocks(df)
     SPLITS_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -96,4 +116,9 @@ def build_splits():
 
 
 if __name__ == "__main__":
-    build_splits()
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--project", default="propertysatellite", help="GCP project for Earth Engine")
+    args = parser.parse_args()
+    build_splits(project=args.project)
+
