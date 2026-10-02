@@ -111,6 +111,25 @@ def export_patches(project: str, resume: bool = True, workers: int = 8):
     PATCHES_DIR.mkdir(parents=True, exist_ok=True)
     manifest_path = PATCHES_DIR / "manifest.csv"
 
+    # Sync pre-existing patches & manifest from Drive if available
+    drive_patches = Path("/content/drive/MyDrive/land_atlas_baseline/patches")
+    if drive_patches.exists():
+        drive_manifest = drive_patches / "manifest.csv"
+        if drive_manifest.exists() and (not manifest_path.exists() or manifest_path.stat().st_size == 0):
+            import shutil
+            shutil.copy(drive_manifest, manifest_path)
+            print(f"Copied manifest from Drive: {drive_manifest}")
+
+        drive_npy = list(drive_patches.glob("*.npy"))
+        if drive_npy:
+            import shutil
+            print(f"Syncing {len(drive_npy)} cached patch files from Drive...")
+            for p in drive_npy:
+                dest = PATCHES_DIR / p.name
+                if not dest.exists():
+                    shutil.copy(p, dest)
+            print("Drive patch sync complete.")
+
     # Find which patches still need to be downloaded
     rows_todo = df[~df.apply(
         lambda r: (PATCHES_DIR / f"{r['region']}_{int(r['label'])}_{r.name}.npy").exists(),
@@ -142,6 +161,18 @@ def export_patches(project: str, resume: bool = True, workers: int = 8):
     manifest_df = pd.DataFrame(manifest_records)
     manifest_df.to_csv(manifest_path, index=False)
     print(f"Manifest saved: {manifest_path} ({len(manifest_df)} patches indexed)")
+
+    # Backup patches & manifest to Drive so future Colab runs skip downloading
+    if Path("/content/drive/MyDrive").exists():
+        drive_out = Path("/content/drive/MyDrive/land_atlas_baseline/patches")
+        drive_out.mkdir(parents=True, exist_ok=True)
+        import shutil
+        shutil.copy(manifest_path, drive_out / "manifest.csv")
+        for npy in PATCHES_DIR.glob("*.npy"):
+            target = drive_out / npy.name
+            if not target.exists():
+                shutil.copy(npy, target)
+        print(f"Backed up patches and manifest to Drive: {drive_out}")
 
 
 if __name__ == "__main__":
