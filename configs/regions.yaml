@@ -1,0 +1,39 @@
+# Kenya study regions
+# [min_lon, min_lat, max_lon, max_lat]
+regions:
+  highland:
+    bbox: [36.30, -0.60, 36.80, -0.10]
+    description: "Central Highlands (Nyeri / Kirinyaga) – Aberdare foothills, mixed crops, high NDVI"
+  coast:
+    bbox: [39.40, -3.90, 39.90, -3.40]
+    description: "Coastal strip (Kilifi) – mangrove, bare coral, cropland, urban fringe"
+  arid:
+    bbox: [37.50, 1.50, 38.00, 2.00]
+    description: "Northern arid zone (Marsabit) – bare rock, sparse grass, low NDVI"
+  lake_basin:
+    bbox: [34.60, -0.30, 35.10, 0.20]
+    description: "Lake Victoria basin (Kisumu fringe) – rice, water, wetland, urban"
+
+# WorldCover v200 remap: original codes -> 6-class scheme
+worldcover_remap:
+  from: [10, 20, 30, 40, 50, 60, 70, 80, 90, 95]
+  to:   [ 0,  1,  3,  3,  2,  5,  5,  4,  4,  3]
+  # 0 built_up  | 1 cropland | 2 trees | 3 grass_shrub | 4 water | 5 bare
+  # (wetland 80->bare, moss 70->bare, mangrove 95->trees, snow dropped)
+
+classes:
+  - built_up
+  - cropland
+  - trees
+  - grass_shrub
+  - water
+  - bare
+
+# RGB display colours (hex, for frontend)
+class_colours:
+  built_up:   "#E05A3A"
+  cropland:   "#F5D76E"
+  trees:      "#27AE60"
+  grass_shrub:"#A9D18E"
+  water:      "#2980B9"
+  bare:       "#C8A96E"

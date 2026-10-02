@@ -1,0 +1,23 @@
+# Generated files
+models/*.onnx
+models/*.pt
+data/raw/*.csv
+data/patches/*.npy
+data/patches/manifest.csv
+data/splits/*.csv
+data/splits/*.parquet
+data/county_summaries/*.json
+data/county_summaries/*.csv
+monitoring/reports/*.html
+monitoring/reports/*.json
+monitoring/reports/*.parquet
+mlruns/
+.DS_Store
+__pycache__/
+*.pyc
+.env
+*.egg-info/
+dist/
+.pytest_cache/
+.ruff_cache/
+coverage.xml

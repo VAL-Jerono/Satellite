@@ -1,0 +1,31 @@
+# api/Dockerfile
+# ─────────────────────────────────────────────────────────────────
+# CPU-only FastAPI service (ONNX Runtime, no CUDA)
+# Target: ~400 MB image, <2 s cold start
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# System deps (OpenCV headless needs libGL-like deps)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libglib2.0-0 libsm6 libxrender1 libxext6 \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY api/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy source
+COPY api/        ./api/
+COPY configs/    ./configs/
+COPY models/     ./models/
+COPY data/county_summaries/ ./data/county_summaries/
+
+ENV PYTHONPATH=/app
+ENV OMP_NUM_THREADS=2
+
+EXPOSE 8000
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=20s \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
+
+CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]

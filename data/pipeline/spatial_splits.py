@@ -1,0 +1,99 @@
+"""
+data/pipeline/spatial_splits.py
+────────────────────────────────
+Builds buffered spatial-block folds from the patch manifest.
+
+Writes:
+    data/splits/fold_{k}_train.csv
+    data/splits/fold_{k}_val.csv
+    data/splits/loro_{region}_train.csv   (leave-one-region-out)
+    data/splits/loro_{region}_val.csv
+    data/splits/split_summary.json
+
+Run from repo root:
+    python -m data.pipeline.spatial_splits
+"""
+
+import json
+import numpy as np
+import pandas as pd
+import yaml
+from pathlib import Path
+from sklearn.model_selection import GroupKFold
+
+_ROOT = Path(__file__).resolve().parents[2]
+_CFG  = yaml.safe_load((_ROOT / "configs" / "config.yaml").read_text())
+
+BLOCK_DEG   = _CFG["training"]["block_deg"]
+N_FOLDS     = _CFG["training"]["n_folds"]
+MANIFEST    = _ROOT / _CFG["paths"]["patches_dir"] / "manifest.csv"
+SPLITS_DIR  = _ROOT / _CFG["paths"]["splits_dir"]
+
+
+def _assign_blocks(df: pd.DataFrame) -> pd.DataFrame:
+    df = df.copy()
+    df["bx"]    = np.floor(df["lon"] / BLOCK_DEG).astype(int)
+    df["by"]    = np.floor(df["lat"] / BLOCK_DEG).astype(int)
+    df["block"] = df["region"] + "_" + df["bx"].astype(str) + "_" + df["by"].astype(str)
+    return df
+
+
+def _buffer_filter(df: pd.DataFrame, train_idx, test_idx) -> np.ndarray:
+    """Remove training points in blocks adjacent to any test block."""
+    reg = df["region"].values
+    bx  = df["bx"].values
+    by  = df["by"].values
+    test_set = set(zip(reg[test_idx], bx[test_idx], by[test_idx]))
+    keep = [
+        i for i in train_idx
+        if not any(
+            (reg[i], bx[i] + dx, by[i] + dy) in test_set
+            for dx in (-1, 0, 1) for dy in (-1, 0, 1)
+        )
+    ]
+    return np.array(keep)
+
+
+def build_splits():
+    df = pd.read_csv(MANIFEST)
+    df = _assign_blocks(df)
+    SPLITS_DIR.mkdir(parents=True, exist_ok=True)
+
+    summary = {"n_total": len(df), "n_blocks": df["block"].nunique(), "folds": []}
+
+    # ── Block CV folds ────────────────────────────────────────────────────────
+    gkf = GroupKFold(n_splits=N_FOLDS)
+    for k, (tr_raw, te) in enumerate(gkf.split(df, df["label"], groups=df["block"])):
+        tr = _buffer_filter(df, tr_raw, te)
+        df.iloc[tr].to_csv(SPLITS_DIR / f"fold_{k}_train.csv", index=False)
+        df.iloc[te].to_csv(SPLITS_DIR / f"fold_{k}_val.csv",   index=False)
+        info = dict(fold=k, train=int(len(tr)), val=int(len(te)),
+                    train_before_buffer=int(len(tr_raw)))
+        summary["folds"].append(info)
+        print(f"Fold {k}: train {len(tr_raw)} → {len(tr)} (buffered) | val {len(te)}")
+
+    # ── Leave-one-region-out ──────────────────────────────────────────────────
+    loro = []
+    for region in df["region"].unique():
+        te_idx = np.where(df["region"].values == region)[0]
+        tr_idx = np.where(df["region"].values != region)[0]
+        df.iloc[tr_idx].to_csv(SPLITS_DIR / f"loro_{region}_train.csv", index=False)
+        df.iloc[te_idx].to_csv(SPLITS_DIR / f"loro_{region}_val.csv",   index=False)
+        loro.append(dict(held_out=region, train=int(len(tr_idx)), val=int(len(te_idx))))
+        print(f"LORO {region}: train {len(tr_idx)} | val {len(te_idx)}")
+    summary["loro"] = loro
+
+    # ── Save reference features for Evidently ────────────────────────────────
+    ref_path = SPLITS_DIR / "reference_features.parquet"
+    df.iloc[summary["folds"][0]["train"] if summary["folds"] else 0:].to_parquet(
+        ref_path, index=False
+    )
+
+    with open(SPLITS_DIR / "split_summary.json", "w") as f:
+        json.dump(summary, f, indent=2)
+    print(f"\nSplits saved to {SPLITS_DIR}")
+    return summary
+
+
+if __name__ == "__main__":
+    build_splits()
