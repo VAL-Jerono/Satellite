@@ -65,6 +65,7 @@ def _feature_image(geom: ee.Geometry) -> ee.Image:
         ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
         .filterDate(f"{YEAR}-01-01", f"{YEAR+1}-01-01")
         .filterBounds(geom)
+        .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", 30))
         .linkCollection(csp, ["cs_cdf"])
         .map(lambda im: im.updateMask(im.select("cs_cdf").gte(CLOUD_THRESH)))
     )
@@ -80,10 +81,8 @@ def _feature_image(geom: ee.Geometry) -> ee.Image:
     col        = s2.map(_add_idx)
     med        = col.select(BANDS + IDX).median()
     ndvi_stats = col.select("NDVI").reduce(
-        ee.Reducer.percentile([10, 90]).combine(
-            ee.Reducer.stdDev(), sharedInputs=True
-        )
-    )
+        ee.Reducer.minMax().combine(ee.Reducer.stdDev(), sharedInputs=True)
+    ).rename(["NDVI_p10", "NDVI_p90", "NDVI_stdDev"])
     elev  = ee.Image("USGS/SRTMGL1_003").rename("elev")
     slope = ee.Terrain.slope(ee.Image("USGS/SRTMGL1_003")).rename("slope")
     return med.addBands(ndvi_stats).addBands(elev).addBands(slope).select(FEATURES)
@@ -91,7 +90,7 @@ def _feature_image(geom: ee.Geometry) -> ee.Image:
 
 CHUNK_DIR = OUT_CSV.parent / f"chunks_{YEAR}_n{PER_CLASS}"
 
-def _get_sub_bboxes(bbox: list, n_split: int = 2) -> list:
+def _get_sub_bboxes(bbox: list, n_split: int = 4) -> list:
     min_x, min_y, max_x, max_y = bbox
     xs = np.linspace(min_x, max_x, n_split + 1)
     ys = np.linspace(min_y, max_y, n_split + 1)
@@ -102,15 +101,15 @@ def _get_sub_bboxes(bbox: list, n_split: int = 2) -> list:
     return boxes
 
 
-def _pull_sub_tile(name: str, sub_idx: int, sub_bbox: list, points_per_class: int) -> pd.DataFrame:
+def _pull_sub_tile(name: str, sub_idx: int, total_subs: int, sub_bbox: list, points_per_class: int) -> pd.DataFrame:
     chunk_path = CHUNK_DIR / f"chunk_{name}_sub{sub_idx}.csv"
     if chunk_path.exists():
         d_cached = pd.read_csv(chunk_path)
-        print(f"  [Cache hit] {name} sub-tile {sub_idx+1}/4 ({len(d_cached)} rows)")
+        print(f"  [Cache hit] {name} sub-tile {sub_idx+1}/{total_subs} ({len(d_cached)} rows)")
         return d_cached
 
     t0 = time.time()
-    print(f"  Sampling {name} sub-tile {sub_idx+1}/4 ...")
+    print(f"  Sampling {name} sub-tile {sub_idx+1}/{total_subs} ...")
     geom = ee.Geometry.Rectangle(sub_bbox)
     img  = _feature_image(geom).addBands(_label_image())
 
@@ -130,18 +129,19 @@ def _pull_sub_tile(name: str, sub_idx: int, sub_bbox: list, points_per_class: in
     df["region"] = name
     df["sub_idx"] = sub_idx
     df.to_csv(chunk_path, index=False)
-    print(f"    -> Saved chunk: {chunk_path} ({len(df)} points in {time.time()-t0:.0f}s)")
+    print(f"    -> Saved chunk: {chunk_path} ({len(df)} points in {time.time()-t0:.1f}s)")
     return df
 
 
-def _pull_region(name: str, bbox: list, n_split: int = 2) -> pd.DataFrame:
+def _pull_region(name: str, bbox: list, n_split: int = 4) -> pd.DataFrame:
     CHUNK_DIR.mkdir(parents=True, exist_ok=True)
     sub_bboxes = _get_sub_bboxes(bbox, n_split=n_split)
-    pts_per_sub = max(10, PER_CLASS // (n_split * n_split))
+    total_subs = len(sub_bboxes)
+    pts_per_sub = max(5, PER_CLASS // total_subs)
 
     parts = []
     for sub_i, sub_b in enumerate(sub_bboxes):
-        parts.append(_pull_sub_tile(name, sub_i, sub_b, pts_per_sub))
+        parts.append(_pull_sub_tile(name, sub_i, total_subs, sub_b, pts_per_sub))
     df = pd.concat(parts, ignore_index=True)
 
     # Cached WorldCover class frequency histogram
