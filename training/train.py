@@ -182,6 +182,13 @@ def main():
                   SPLITS_DIR / f"fold_{k}_val.csv")
                  for k in range(n)]
 
+    # Auto-build splits if any required split CSV is missing
+    missing = [tr for _, tr, va in pairs if not tr.exists() or not va.exists()]
+    if missing:
+        print("Split files not found. Automatically building spatial block splits...")
+        from data.pipeline.spatial_splits import build_splits
+        build_splits()
+
     results = []
     for fold_id, tr_csv, va_csv in pairs:
         print(f"\n{'='*50}\nFold {fold_id}")
