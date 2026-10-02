@@ -16,8 +16,11 @@ Run from repo root:
 from __future__ import annotations
 import argparse
 import json
+import os
 import time
 from pathlib import Path
+
+os.environ["MLFLOW_ALLOW_FILE_STORE"] = "true"
 
 import mlflow
 import numpy as np
