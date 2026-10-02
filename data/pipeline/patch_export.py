@@ -42,6 +42,7 @@ def _s2_composite(geom: ee.Geometry) -> ee.Image:
     s2  = (ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
            .filterDate(f"{YEAR}-01-01", f"{YEAR+1}-01-01")
            .filterBounds(geom)
+           .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", 30))
            .linkCollection(csp, ["cs_cdf"])
            .map(lambda im: im.updateMask(im.select("cs_cdf").gte(CLOUD_THRESH))))
     return (s2.select(BANDS).median().divide(10000).clamp(0, 1)
@@ -78,7 +79,7 @@ def _export_patch(row, project: str, out_dir: Path) -> str | None:
         return None
 
 
-def export_patches(project: str, resume: bool = True, workers: int = 4):
+def export_patches(project: str, resume: bool = True, workers: int = 8):
     df = pd.read_csv(IN_CSV)
     PATCHES_DIR.mkdir(parents=True, exist_ok=True)
     manifest_path = PATCHES_DIR / "manifest.csv"
@@ -124,6 +125,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--project", required=True)
     parser.add_argument("--no-resume", action="store_true")
-    parser.add_argument("--workers",  type=int, default=4)
+    parser.add_argument("--workers",  type=int, default=8)
     args = parser.parse_args()
     export_patches(args.project, resume=not args.no_resume, workers=args.workers)
