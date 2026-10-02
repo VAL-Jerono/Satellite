@@ -85,6 +85,14 @@ def _export_patch(row, project: str, out_dir: Path) -> str | None:
 
 
 def export_patches(project: str, resume: bool = True, workers: int = 8):
+    try:
+        ee.Initialize(project=project)
+    except Exception as exc:
+        raise RuntimeError(
+            f"Failed to initialize Earth Engine with project '{project}': {exc}\n"
+            "If running in Google Colab, please run `import ee; ee.Authenticate()` in an interactive notebook cell first."
+        ) from exc
+
     csv_path = IN_CSV
     if not csv_path.exists():
         drive_csv = Path("/content/drive/MyDrive/land_atlas_baseline/samples_2021_n400.csv")

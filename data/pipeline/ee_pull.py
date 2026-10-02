@@ -175,9 +175,11 @@ def _pull_region(name: str, bbox: list, n_split: int = 4) -> pd.DataFrame:
 def pull(project: str, force: bool = False) -> pd.DataFrame:
     try:
         ee.Initialize(project=project)
-    except Exception:
-        ee.Authenticate()
-        ee.Initialize(project=project)
+    except Exception as exc:
+        raise RuntimeError(
+            f"Failed to initialize Earth Engine with project '{project}': {exc}\n"
+            "If running in Google Colab, please run `import ee; ee.Authenticate()` in an interactive notebook cell first."
+        ) from exc
     print("Earth Engine ready")
 
     OUT_CSV.parent.mkdir(parents=True, exist_ok=True)
