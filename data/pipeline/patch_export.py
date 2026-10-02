@@ -80,7 +80,21 @@ def _export_patch(row, project: str, out_dir: Path) -> str | None:
 
 
 def export_patches(project: str, resume: bool = True, workers: int = 8):
-    df = pd.read_csv(IN_CSV)
+    csv_path = IN_CSV
+    if not csv_path.exists():
+        drive_csv = Path("/content/drive/MyDrive/land_atlas_baseline/samples_2021_n400.csv")
+        if drive_csv.exists():
+            csv_path.parent.mkdir(parents=True, exist_ok=True)
+            import shutil
+            shutil.copy(drive_csv, csv_path)
+            print(f"Copied samples CSV from Drive: {drive_csv} -> {csv_path}")
+        else:
+            raise FileNotFoundError(
+                f"Sample CSV not found at {csv_path} or {drive_csv}.\n"
+                "Please make sure Google Drive is mounted or run ee_pull first."
+            )
+
+    df = pd.read_csv(csv_path)
     PATCHES_DIR.mkdir(parents=True, exist_ok=True)
     manifest_path = PATCHES_DIR / "manifest.csv"
 
