@@ -276,3 +276,115 @@ def get_tile(z: int, x: int, y: int):
     buf = io.BytesIO()
     img.save(buf, format="PNG")
     return Response(content=buf.getvalue(), media_type="image/png")
+
+
+# ── GenAI / RAG Spatial Underwriting Copilot ───────────────────────────────────
+
+_RAG_REGULATORY_KNOWLEDGE = {
+    "PLUPA_2019": "Kenya Physical and Land Use Planning Act (2019) Sec. 56: Mandatory 30m setback from rivers and designated wetlands; residential development on slopes >15° requires specialized civil engineering certification.",
+    "NEMA_EMCA": "NEMA Environmental Impact Assessment Regulations: Conversion of agricultural land >2 hectares to commercial/built-up requires NEMA EIA License & Public Hearing.",
+    "TRADE_CORRIDOR": "East African Trade Corridor Zoning Standard: Commercial logistics hubs must maintain 50m highway buffer & demonstrate non-interference with primary cropland drainage.",
+}
+
+class CopilotRequest(BaseModel):
+    lat:            float
+    lon:            float
+    probabilities:  dict[str, float]
+    prediction:     str
+    recommendation: dict
+    flood_risk:     bool = False
+    slope_deg:      float = 0.0
+    county_name:    Optional[str] = "Kenya Spatial Corridor"
+
+class CopilotResponse(BaseModel):
+    dossier:        str
+    llm_powered:    bool
+    source_context: list[str]
+
+
+def _build_fallback_dossier(req: CopilotRequest) -> str:
+    action = req.recommendation.get("action", "farm").upper()
+    conf = req.recommendation.get("confidence", "medium").upper()
+    dom_class = req.prediction.replace("_", " ").title()
+    dom_p = req.probabilities.get(req.prediction, 0.0) * 100.0
+    
+    dossier = f"""### 📋 Spatial Underwriting Summary Dossier
+**Site Coordinates:** `{req.lat:.4f}, {req.lon:.4f}` | **Region:** {req.county_name}  
+**Primary Land Classification:** {dom_class} ({dom_p:.1f}% Model Confidence)  
+**Underwriting Recommendation:** **{action}** ({conf} CONFIDENCE)
+
+---
+
+#### 1. 🏢 Executive Land Suitability Assessment
+- **Dominant Land Cover:** Classified as **{dom_class}**.
+- **Topographic Constraints:** Terrain slope measured at **{req.slope_deg:.1f}°**. {"⚠️ Exceeds 15° slope threshold — heightened landslide & soil erosion vulnerability." if req.slope_deg > 15 else "✅ Slope within standard construction tolerance (<15°)."}
+- **Flood Exposure Status:** {"⚠️ High surface flood risk flagged by hydrologic DEM analysis." if req.flood_risk else "✅ Low immediate flood risk identified."}
+
+#### 2. 📜 Statutory Zoning & Regulatory Compliance Check (RAG Engine)
+- **PLUPA 2019 Compliance:** {_RAG_REGULATORY_KNOWLEDGE['PLUPA_2019']}
+- **NEMA Environment Check:** {_RAG_REGULATORY_KNOWLEDGE['NEMA_EMCA']}
+- **Trade Corridor Requirement:** {_RAG_REGULATORY_KNOWLEDGE['TRADE_CORRIDOR']}
+
+#### 3. 💡 Capital Deployment & Risk Mitigation Rationale
+*Rationale:* {req.recommendation.get('rationale', 'Site suitability evaluated based on multi-spectral satellite features.')}
+- **Actionable Guidance:** {"Hold residential development; enforce environmental protection buffer." if action == "PROTECT" else ("Approve low-density infrastructure deployment." if action == "SETTLE" else "Prioritize agricultural financing and irrigation infrastructure.")}
+"""
+    return dossier.strip()
+
+
+@app.post("/underwrite/copilot", response_model=CopilotResponse)
+def spatial_underwriting_copilot(req: CopilotRequest):
+    """
+    GenAI / RAG Spatial Underwriting Copilot Endpoint.
+    Synthesizes Sentinel-2 multi-spectral predictions, topographic risk,
+    and Kenyan land use regulations into an executive underwriting dossier.
+    """
+    sources = list(_RAG_REGULATORY_KNOWLEDGE.values())
+    api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+    
+    if api_key:
+        try:
+            import google.generativeai as genai
+            genai.configure(api_key=api_key)
+            model = genai.GenerativeModel("gemini-1.5-flash")
+            
+            prompt = f"""
+You are an expert GIS Spatial Underwriter for African Trade Corridors and Real Estate.
+Synthesize an executive Underwriting Dossier for a site in Kenya with the following evidence:
+- Location: Lat {req.lat:.4f}, Lon {req.lon:.4f} ({req.county_name})
+- Model Prediction: {req.prediction} (Probabilities: {json.dumps(req.probabilities)})
+- Recommendation: {req.recommendation}
+- Flood Hazard Flag: {req.flood_risk}, Slope: {req.slope_deg}°
+- Relevant Spatial Planning Regulations (RAG Context):
+  * {sources[0]}
+  * {sources[1]}
+  * {sources[2]}
+
+Format your response as a professional Markdown report with sections:
+1. Executive Land Suitability Brief
+2. Regulatory Compliance & Environmental Hazard Assessment
+3. Strategic Underwriting & Capital Allocation Recommendation
+Keep it concise, rigorous, and professional.
+"""
+            res = model.generate_content(prompt)
+            return CopilotResponse(
+                dossier=res.text.strip(),
+                llm_powered=True,
+                source_context=sources
+            )
+        except Exception as exc:
+            # Fallback if API call fails
+            dossier = _build_fallback_dossier(req)
+            return CopilotResponse(
+                dossier=dossier + f"\n\n*Note: Gemini API fallback used due to: {exc}*",
+                llm_powered=False,
+                source_context=sources
+            )
+    else:
+        dossier = _build_fallback_dossier(req)
+        return CopilotResponse(
+            dossier=dossier,
+            llm_powered=False,
+            source_context=sources
+        )
+

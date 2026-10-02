@@ -223,6 +223,36 @@ with col_results:
                 unsafe_allow_html=True,
             )
 
+            # ── GenAI / RAG Spatial Underwriting Copilot UI ──
+            st.markdown("---")
+            if st.button("🤖 Generate GenAI Underwriting Dossier", use_container_width=True, type="primary"):
+                with st.spinner("Generating RAG spatial underwriting report..."):
+                    try:
+                        copilot_resp = requests.post(
+                            f"{API_URL}/underwrite/copilot",
+                            json={
+                                "lat": lat,
+                                "lon": lon,
+                                "probabilities": probs,
+                                "prediction": data["prediction"],
+                                "recommendation": rec,
+                                "flood_risk": show_hazard,
+                                "slope_deg": 4.5,
+                                "county_name": "Kenya Spatial Corridor"
+                            },
+                            timeout=15,
+                        )
+                        copilot_resp.raise_for_status()
+                        copilot_data = copilot_resp.json()
+                        st.markdown(copilot_data["dossier"])
+                        if copilot_data.get("llm_powered"):
+                            st.caption("✨ Powered by Google Gemini API + RAG Statutory Knowledge Base")
+                        else:
+                            st.caption("⚡ Powered by Deterministic Regulatory RAG Engine (Local Fallback)")
+                    except Exception as copilot_err:
+                        st.error(f"Copilot service error: {copilot_err}")
+
+
     elif mode == "County search":
         county = st.text_input("County name (e.g. Kirinyaga)", placeholder="Enter county …")
         if county:

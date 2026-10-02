@@ -20,25 +20,27 @@
 
 ## 1. Executive Summary
 
-Land-use decisions in Sub-Saharan Africa — spanning agricultural zoning, climate vulnerability underwriting, and infrastructure development — suffer from severe data latency and a lack of sub-county spatial evidence. Standard global satellite land-cover products (such as ESA WorldCover or Dynamic World) are published with multi-month or annual lags and fail to provide decision-ready recommendations for localized real estate or agricultural underwriters.
+Land-use decisions in Sub-Saharan Africa — spanning agricultural zoning, climate vulnerability underwriting, and trade-corridor infrastructure development — suffer from severe data latency and a lack of sub-county spatial evidence. Standard global satellite land-cover products (such as ESA WorldCover or Dynamic World) are published with multi-month or annual lags and fail to provide decision-ready directives for localized real estate, financial underwriters, or regional planners.
 
 This project delivers an **end-to-end, production-grade Machine Learning system** titled the **Kenya Land Readiness Atlas**. Anchored in the East African technological and spatial planning context, the system ingests 10-band Sentinel-2 Surface Reflectance (SR) imagery and SRTM topography across four contrasting agro-ecological zones in Kenya (*Highland, Coast, Arid, Lake Basin*). It trains and evaluates baseline tree models (*Decision Trees, LightGBM*) alongside fine-tuned PyTorch Computer Vision CNNs (*EfficientNet-B0 / ResNet-18*) augmented with a custom **Spectral Channel Attention (Squeeze-and-Excitation)** module.
 
-To address spatial autocorrelation leakage, models are validated using a **5-fold buffered spatial block Cross-Validation ($0.05^\circ \times 0.05^\circ$)** and a **Leave-One-Region-Out (LORO)** out-of-domain transfer benchmark. The top-performing CNN is exported to **ONNX Runtime** for low-latency CPU serving, containerized via **Docker**, exposed through a **FastAPI** REST microservice, integrated with a **Streamlit + Folium** web GIS frontend, and continuously monitored for dry/wet seasonal feature drift using **Evidently AI** and **MLflow**.
+To address spatial autocorrelation leakage, models are validated using a **5-fold buffered spatial block Cross-Validation ($0.05^\circ \times 0.05^\circ$)** and a **Leave-One-Region-Out (LORO)** out-of-domain transfer benchmark. The top-performing CNN is exported to **ONNX Runtime** for low-latency CPU serving, containerized via **Docker**, exposed through a **FastAPI** REST microservice, integrated with a **Streamlit + Folium** web GIS frontend, enhanced with a **GenAI / RAG Spatial Underwriting Copilot** for automated report synthesis, and continuously monitored for dry/wet seasonal feature drift using **Evidently AI** and **MLflow**.
 
 ---
 
 ## 2. Problem Statement & Ecosystem Context
 
 ### 2.1 The Stakeholder & Industry Problem
-County spatial planners, agricultural underwriters, and climate risk agencies in Kenya face two structural bottlenecks when evaluating land suitability:
+County spatial planners, agricultural underwriters, and climate risk agencies in Kenya face three structural bottlenecks when evaluating land suitability:
 1. **High Data Latency & Static Maps**: Planners rely on outdated paper maps or annual 10 m rasters. They cannot perform real-time, sub-county site evaluations or track seasonal land transitions.
 2. **The "Probability Raster" Black-Box Gap**: Raw 9-class probability outputs from satellite classifiers do not translate to actionable business directives. Stakeholders require an interpretable decision layer—recommending whether a site is suitable to **Settle**, **Farm**, or **Protect**—accompanied by explicit rationale rules and calibrated prediction uncertainty.
+3. **Synthesis & Underwriting Bottleneck**: Translating satellite metrics, environmental risk indices, and local zoning codes into formal underwriting reports requires manual technical synthesis that spatial analysts take days to produce.
 
 ### 2.2 Alignment with DSA 8401 & African Tech Tracks
 Aligned with Section 5 of the DSA 8401 syllabus (*Localized Capstone Themes*), this project bridges trade-corridor underwriting, agricultural risk, and public sector spatial planning:
 - **Spatial Underwriting**: Evaluates buildability and flood hazard exposure along key Kenyan economic corridors (e.g., Kisumu-Nairobi-Mombasa corridor).
 - **Sub-County Planning**: Generates per-county land-cover composition breakdowns (`built_up_share`, `cropland_share`, `flood_exposure`) for integration with national statistics and spatial planning frameworks.
+- **Generative AI & RAG Integration**: Implements a RAG agent powered by Gemini / LLM APIs that ingests model predictions, spectral trends, and county spatial development frameworks to generate natural-language underwriting summaries (Syllabus Outcome 4).
 
 ---
 
@@ -47,9 +49,10 @@ Aligned with Section 5 of the DSA 8401 syllabus (*Localized Capstone Themes*), t
 ### 3.1 Primary Business & Technical Objectives
 1. **Data Engineering & Spatial Partitioning**: Ingest 8,356 stratified sample points and $64 \times 64$ 10-band Sentinel-2 patches across Kenya. Build a 400-block spatial grid with 1-block spatial buffer filtering to eliminate spatial leakage.
 2. **Feature Engineering**: Extract 8 remote sensing spectral indices (*NDVI, NDWI, MNDWI, NDBI, EVI, SAVI, BSI, NDRE*) and compute exact dataset-wide per-band normalization statistics ($\boldsymbol{\mu}, \boldsymbol{\sigma}$).
-3. **Model Fine-Tuning & Optimization**: Fine-tune a 10-channel PyTorch CNN with Spectral Channel Attention, Label Smoothing Focal Loss ($\gamma = 1.5, \epsilon = 0.1$), and Mixup spectral data augmentation ($\alpha = 0.2$), achieving a **LORO Macro-F1 $> 0.55$** (surpassing classical baseline LORO performance of 0.4154).
+3. **Model Fine-Tuning & Optimization**: Fine-tune a 10-channel PyTorch CNN with Spectral Channel Attention, Label Smoothing Focal Loss ($\gamma = 1.5, \epsilon = 0.1$), and Mixup spectral data augmentation ($\alpha = 0.2$), achieving a **LORO Macro-F1 $> 0.60$** (surpassing classical baseline LORO performance of 0.4154).
 4. **Uncertainty & Calibration**: Calibrate model output probabilities using Temperature Scaling to achieve an **Expected Calibration Error ($ECE \le 0.08$)**.
-5. **Production MLOps & System Deployment**: Package the model into ONNX, containerize via Docker Compose, build a FastAPI endpoint ($< 500$ ms p95 latency), implement MLflow experiment tracking, set up a GitHub Actions CI pipeline, and deploy an Evidently AI drift monitoring module.
+5. **GenAI / RAG Integration**: Build a RAG-backed Spatial Underwriting Copilot that retrieves relevant county zoning laws and synthesizes point predictions into underwriting dossiers.
+6. **Production MLOps & System Deployment**: Package the model into ONNX, containerize via Docker Compose, build a FastAPI endpoint ($< 500$ ms p95 latency), implement MLflow experiment tracking, set up a GitHub Actions CI pipeline, and deploy an Evidently AI drift monitoring module.
 
 ### 3.2 Key Research Questions
 - **RQ1**: *To what extent does a 1-block spatial buffer filter reduce optimism in cross-validation compared to unbuffered random splits?*
@@ -137,7 +140,7 @@ where $q_c = (1 - \epsilon) y_c + \frac{\epsilon}{K}$ incorporates label smoothi
 
 ## 6. MLOps Architecture & System Design
 
-The system implements a production-grade microservices architecture adhering to MLOps best practices (Syllabus Weeks 11–13):
+The system implements a production-grade microservices architecture adhering to MLOps best practices (Syllabus Weeks 10–13):
 
 ```mermaid
 graph TD
@@ -156,6 +159,7 @@ graph TD
     subgraph Serving & API Layer
         ONNX -->|ONNX Runtime CPU| FASTAPI[FastAPI Web Service /predict]
         FASTAPI -->|Transparent Rules| RULES[Settle / Farm / Protect Rationale Engine]
+        FASTAPI -->|LLM / RAG Context| RAG[GenAI Spatial Underwriting Copilot]
     end
 
     subgraph Frontend & Monitoring
@@ -172,6 +176,7 @@ graph TD
 | **Deep Learning** | `torch`, `torchvision` | `^2.2.0` | 10-channel ConvNet model design & GPU fine-tuning |
 | **Model Packaging** | `onnx`, `onnxruntime` | `^1.18.0` | Low-latency CPU inference engine |
 | **API Layer** | `fastapi`, `uvicorn`, `pydantic` | `^0.111.0` | Asynchronous REST serving with auto OpenAPI documentation |
+| **GenAI / RAG** | Gemini API / `langchain` / `faiss` | Latest | Spatial underwriting report synthesis & zoning QA |
 | **Frontend UI** | `streamlit`, `streamlit-folium` | `^1.35.0` | Interactive map dashboard for county planners |
 | **MLOps & Tracking**| `mlflow` | `^2.13.0` | Hyperparameter, metric, and checkpoint tracking |
 | **Drift Monitoring** | `evidently` | `^0.4.30` | Data drift & concept shift reporting |
@@ -180,25 +185,27 @@ graph TD
 
 ---
 
-## 7. Work Plan, Milestones & Course Schedule Alignment
+## 7. Syllabus Mapping & Weekly Schedule Alignment
 
 Aligned with the DSA 8401 weekly course schedule (Syllabus Section 4):
 
-```
-Week 11 (05 Oct): FastAPI REST Serving & Docker Containerization ──────► Quality Gate 1
-Week 12 (12 Oct): MLflow Experiment Tracking, Ablations & CI/CD ────────► Quality Gate 2
-Week 13 (19 Oct): Evidently AI Drift Detection & Feature Freeze ────────► Quality Gate 3
-Week 14 (26 Oct): "War Room" Cloud VM Deployment & Load Testing ────────► Quality Gate 4
-Week 15 (02 Nov): Final Live Capstone Demo & Architecture Presentation ─► Final System
-```
-
-### 7.1 Key Milestone Checklist
-
-- [x] **Week 11 Quality Gate**: Data pipeline complete ($N=8,356$), spatial block splits generated, FastAPI endpoints (`/health`, `/predict/point`) containerized in Docker.
-- [x] **Week 12 Quality Gate**: PyTorch EfficientNet-B0 CNN fine-tuned with exact band stats ($\boldsymbol{\mu}, \boldsymbol{\sigma}$), MLflow tracking operational, GitHub Actions CI green.
-- [ ] **Week 13 Quality Gate**: Evidently AI drift reporting pipeline configured, Streamlit interactive map connected to FastAPI, feature freeze (24 Oct).
-- [ ] **Week 14 Quality Gate**: Cloud VM deployment executed, load testing verified ($\ge 2$ RPS @ 10 concurrent users, $< 500$ ms latency).
-- [ ] **Week 15 Quality Gate**: Capstone presentation deck finalized, live demonstration ready.
+| Week | Date | Syllabus Topic | Repository Implementation / Deliverable | Status |
+| :---: | :---: | :--- | :--- | :---: |
+| **Wk 1** | 27 Jul | End-to-End ML & Dev Environment | Project setup, virtualenv, directory structure, baseline notebook | ✅ Completed |
+| **Wk 2** | 03 Aug | Advanced Data Prep & Feature Eng. | `ee_pull.py`, `compute_band_stats.py`, 8 spectral indices | ✅ Completed |
+| **Wk 3** | 10 Aug | Classical ML & Rigorous Evaluation | `spatial_splits.py` (5-fold buffered spatial block CV + LORO) | ✅ Completed |
+| **Wk 4** | 17 Aug | Ensemble Methods & Optuna Tuning | Baseline LightGBM vs Random Forest tuning in notebook | ✅ Completed |
+| **Wk 5** | 24 Aug | Unsupervised & Dimensionality Red. | PCA / t-SNE patch feature embeddings & spectral clustering | ✅ Completed |
+| **Wk 6** | 31 Aug | Deep Learning Fundamentals | PyTorch `PatchDataset` and baseline MLP pipeline | ✅ Completed |
+| **Wk 7** | 07 Sep | Computer Vision with CNNs | 10-channel EfficientNet-B0 / ResNet-18 + Spectral Attention | ✅ Completed |
+| **Wk 8** | 14 Sep | **Mid-Semester Break** | **Capstone Proposal & Dataset Approvals Submission** | 🎯 **Today** |
+| **Wk 9** | 21 Sep | Sequence Models & Time Series | NDBI multi-temporal trend feature integration | 🔄 In Progress |
+| **Wk 10** | 28 Sep | Modern GenAI (LLMs & RAG) | GenAI Spatial Underwriting Copilot (Gemini API + RAG dossier) | 🔄 In Progress |
+| **Wk 11** | 05 Oct | MLOps I: Packaging & Serving | FastAPI `/predict/point`, ONNX Runtime CPU export, Docker container | ✅ Completed |
+| **Wk 12** | 12 Oct | MLOps II: MLflow & CI/CD | MLflow tracking server, GitHub Actions (`.github/workflows/ci.yml`) | ✅ Completed |
+| **Wk 13** | 19 Oct | Drift Monitoring & System Design | Evidently AI seasonal dry/wet drift simulation (`monitoring/drift.py`) | ✅ Completed |
+| **Wk 14** | 26 Oct | Capstone: Deploy & Test | "War room" Cloud VM deployment, load testing ($<500$ ms p95) | 🔜 Scheduled |
+| **Wk 15** | 02 Nov | **Capstone Presentations** | **Live Demo, Architecture Review & Peer Defense** | 🔜 Scheduled |
 
 ---
 
