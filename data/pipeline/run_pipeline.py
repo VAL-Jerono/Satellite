@@ -283,7 +283,17 @@ def run_pipeline(
     stage_filter: "str | None" = None,
     workers: int = 8,
     force: bool = False,
+    skip_patch_export: bool = True,
 ):
+    """Orchestrate the full pipeline.
+
+    Parameters
+    ----------
+    skip_patch_export : bool
+        When True (default) the 64x64 .npy patch download stage is skipped.
+        This is safe for tabular ML training (RF/XGB) which only needs the
+        master CSV.  Set to False only when preparing CNN training data.
+    """
     from data.pipeline.ledger import Ledger
     import shutil
 
@@ -325,6 +335,9 @@ def run_pipeline(
     # ── Stage 1 & 2: EE Pull + Patch Export (county-by-county in batches) ────
     for stage in ("ee_pull", "patch_export"):
         if stage_filter and stage_filter != stage:
+            continue
+        if stage == "patch_export" and skip_patch_export:
+            print("[Pipeline] Skipping patch_export (SKIP_PATCH_EXPORT=True) — set to False for CNN data prep")
             continue
 
         pending = [c for c in target_counties if led.county_stage(c, stage) != "done"]
