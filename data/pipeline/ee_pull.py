@@ -21,7 +21,9 @@ import os
 import time
 from pathlib import Path
 
-import ee
+# NOTE: `import ee` is intentionally deferred to inside functions so that
+# importing this module never crashes when earthengine-api is not installed
+# in the current Python environment (e.g. system Python on Colab).
 import numpy as np
 import pandas as pd
 import yaml
@@ -61,12 +63,14 @@ def _retry(fn, tries: int = 3, wait: float = 10):
     return fn()
 
 
-def _label_image() -> ee.Image:
+def _label_image() -> "ee.Image":
+    import ee
     wc = ee.ImageCollection("ESA/WorldCover/v200").first().select("Map")
     return wc.remap(REMAP_FROM, REMAP_TO).rename("label").toInt()
 
 
-def _feature_image(geom: ee.Geometry) -> ee.Image:
+def _feature_image(geom: "ee.Geometry") -> "ee.Image":
+    import ee
     csp = ee.ImageCollection("GOOGLE/CLOUD_SCORE_PLUS/V1/S2_HARMONIZED")
     s2 = (
         ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
