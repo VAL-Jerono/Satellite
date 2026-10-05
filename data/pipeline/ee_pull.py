@@ -113,6 +113,7 @@ def _get_sub_bboxes(bbox: list, n_split: int = 4) -> list:
 
 
 def _pull_sub_tile(name: str, sub_idx: int, total_subs: int, sub_bbox: list, points_per_class: int) -> pd.DataFrame:
+    import ee
     chunk_path = CHUNK_DIR / f"chunk_{name}_sub{sub_idx}.csv"
     if chunk_path.exists():
         d_cached = pd.read_csv(chunk_path)
@@ -145,6 +146,7 @@ def _pull_sub_tile(name: str, sub_idx: int, total_subs: int, sub_bbox: list, poi
 
 
 def _pull_region(name: str, bbox: list, n_split: int = 4) -> pd.DataFrame:
+    import ee
     CHUNK_DIR.mkdir(parents=True, exist_ok=True)
     sub_bboxes = _get_sub_bboxes(bbox, n_split=n_split)
     total_subs = len(sub_bboxes)
