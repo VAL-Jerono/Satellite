@@ -285,14 +285,42 @@ def run_pipeline(
     force: bool = False,
 ):
     from data.pipeline.ledger import Ledger
+    import shutil
 
     drive = _drive_dir()
+
+    # ── Restore chunks from Drive → local (critical after Colab session restart) ─
+    # /content/ is wiped on restart; Drive is persistent.  Copy chunks back so
+    # that the sub-tile cache-hit logic fires and no county is re-pulled from EE.
+    if drive is not None:
+        from data.pipeline.ee_pull import CHUNK_DIR, YEAR, PER_CLASS
+        drive_chunks = drive / f"chunks_{YEAR}_n{PER_CLASS}"
+        if drive_chunks.exists():
+            CHUNK_DIR.mkdir(parents=True, exist_ok=True)
+            restored = 0
+            for src in drive_chunks.glob("chunk_*.csv"):
+                dst = CHUNK_DIR / src.name
+                if not dst.exists():
+                    shutil.copy(src, dst)
+                    restored += 1
+            if restored:
+                print(f"[Pipeline] Restored {restored} chunk CSVs from Drive → local cache")
+            else:
+                print(f"[Pipeline] Local chunk cache already warm ({len(list(CHUNK_DIR.glob('chunk_*.csv')))} files)")
+        # Also restore manifest CSV if present
+        drive_csv = drive / f"samples_{YEAR}_n{PER_CLASS}.csv"
+        if drive_csv.exists() and not OUT_CSV.exists():
+            OUT_CSV.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy(drive_csv, OUT_CSV)
+            print(f"[Pipeline] Restored master CSV from Drive → local")
+
     led = Ledger(drive_dir=drive)
 
     print(led.summary())
     print()
 
     target_counties = counties if counties else ALL_REGIONS
+
 
     # ── Stage 1 & 2: EE Pull + Patch Export (county-by-county in batches) ────
     for stage in ("ee_pull", "patch_export"):
