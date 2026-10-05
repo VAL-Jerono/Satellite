@@ -8,12 +8,15 @@ Generates:
 2. Mean spectral profiles (10 bands) across land-cover classes.
 3. Feature correlation matrices between bands and spectral indices.
 4. Spectral index distribution statistics per land cover class.
-5. Saves visual charts and summary markdown report to docs/figures/ & docs/eda_report.md.
+5. Saves visual charts and summary markdown report to:
+   • docs/eda/          (git-tracked, always written)
+   • Drive/land_atlas_baseline/eda/  (Colab backup, when Drive is mounted)
 """
 
 from __future__ import annotations
 import json
 import os
+import shutil
 from pathlib import Path
 import numpy as np
 import pandas as pd
@@ -22,8 +25,34 @@ from typing import Dict, List, Optional
 from data.feature_engineering import augment_dataframe_with_features, INDEX_NAMES, BANDS
 
 _ROOT = Path(__file__).resolve().parents[1]
+
+# ── Output directories ──────────────────────────────────────────────────────────
+# Primary: git-tracked local folder
+_EDA_DIR     = _ROOT / "docs" / "eda"
+_FIGURES_DIR = _EDA_DIR / "figures"
+
+# Legacy alias kept for backward compatibility
 _REPORTS_DIR = _ROOT / "docs"
-_FIGURES_DIR = _REPORTS_DIR / "figures"
+
+# Drive backup (Colab only — None when not mounted)
+def _drive_eda_dir() -> "Path | None":
+    p = Path("/content/drive/MyDrive/land_atlas_baseline/eda")
+    return p if p.parents[1].exists() else None   # parent[1] = MyDrive
+
+
+def _mirror_to_drive(src: Path) -> None:
+    """Copy a file to the Drive EDA directory if Drive is mounted."""
+    drive = _drive_eda_dir()
+    if drive is None:
+        return
+    drive.mkdir(parents=True, exist_ok=True)
+    dest = drive / src.name
+    try:
+        shutil.copy2(src, dest)
+        print(f"  [Drive] ← {dest}")
+    except Exception as exc:
+        print(f"  [Drive] copy failed ({exc})")
+
 
 # Sample search locations across Colab and local environments
 CSV_SEARCH_PATHS = [
@@ -33,7 +62,28 @@ CSV_SEARCH_PATHS = [
 ]
 
 CLASS_NAMES = ["built_up", "cropland", "trees", "grass_shrub", "water", "bare"]
-REGIONS = ["highland", "coast", "arid", "lake_basin"]
+
+# All 10 counties across 5 climate zones
+REGIONS = [
+    # Highland zone
+    "highland", "muranga", "nyandarua",
+    # Coastal zone
+    "coast", "kwale", "lamu",
+    # ASAL zone
+    "arid", "turkana", "wajir",
+    # Lake zone
+    "lake_basin", "siaya",
+    # Rift Valley zone
+    "nakuru", "kajiado",
+]
+
+CLIMATE_ZONES = {
+    "highland": "highland_zone", "muranga": "highland_zone", "nyandarua": "highland_zone",
+    "coast":    "coastal_zone",  "kwale":   "coastal_zone",  "lamu":      "coastal_zone",
+    "arid":     "asal_zone",     "turkana": "asal_zone",     "wajir":     "asal_zone",
+    "lake_basin": "lake_zone",   "siaya":   "lake_zone",
+    "nakuru":   "rift_zone",     "kajiado": "rift_zone",
+}
 
 
 def load_dataset_samples() -> Optional[pd.DataFrame]:
@@ -50,32 +100,39 @@ def load_dataset_samples() -> Optional[pd.DataFrame]:
 
 
 def generate_synthetic_eda_data() -> pd.DataFrame:
-    """Generates synthetic dataset matching Kenya regional distribution for demonstration/testing."""
-    print("Generating representative synthetic dataset for EDA pipeline validation...")
+    """Generates synthetic dataset matching all 10 Kenya county distributions for demo/testing."""
+    print("Generating representative synthetic dataset across 10 counties ...")
     np.random.seed(42)
     rows = []
 
+    # Class spectral profiles (approximate surface reflectance, scaled 0-1)
     class_profiles = {
-        0: {"B2": 0.12, "B3": 0.13, "B4": 0.15, "B5": 0.17, "B6": 0.18, "B7": 0.19, "B8": 0.20, "B8A": 0.21, "B11": 0.25, "B12": 0.22}, # built_up
-        1: {"B2": 0.04, "B3": 0.07, "B4": 0.05, "B5": 0.12, "B6": 0.22, "B7": 0.26, "B8": 0.28, "B8A": 0.29, "B11": 0.18, "B12": 0.09}, # cropland
-        2: {"B2": 0.03, "B3": 0.05, "B4": 0.03, "B5": 0.10, "B6": 0.24, "B7": 0.29, "B8": 0.32, "B8A": 0.33, "B11": 0.14, "B12": 0.06}, # trees
-        3: {"B2": 0.06, "B3": 0.08, "B4": 0.09, "B5": 0.14, "B6": 0.20, "B7": 0.22, "B8": 0.24, "B8A": 0.25, "B11": 0.21, "B12": 0.13}, # grass_shrub
-        4: {"B2": 0.05, "B3": 0.04, "B4": 0.03, "B5": 0.02, "B6": 0.01, "B7": 0.01, "B8": 0.01, "B8A": 0.01, "B11": 0.005, "B12": 0.002}, # water
-        5: {"B2": 0.10, "B3": 0.12, "B4": 0.16, "B5": 0.19, "B6": 0.21, "B7": 0.22, "B8": 0.23, "B8A": 0.24, "B11": 0.30, "B12": 0.26}, # bare
+        0: {"B2": 0.12, "B3": 0.13, "B4": 0.15, "B5": 0.17, "B6": 0.18, "B7": 0.19, "B8": 0.20, "B8A": 0.21, "B11": 0.25, "B12": 0.22},  # built_up
+        1: {"B2": 0.04, "B3": 0.07, "B4": 0.05, "B5": 0.12, "B6": 0.22, "B7": 0.26, "B8": 0.28, "B8A": 0.29, "B11": 0.18, "B12": 0.09},  # cropland
+        2: {"B2": 0.03, "B3": 0.05, "B4": 0.03, "B5": 0.10, "B6": 0.24, "B7": 0.29, "B8": 0.32, "B8A": 0.33, "B11": 0.14, "B12": 0.06},  # trees
+        3: {"B2": 0.06, "B3": 0.08, "B4": 0.09, "B5": 0.14, "B6": 0.20, "B7": 0.22, "B8": 0.24, "B8A": 0.25, "B11": 0.21, "B12": 0.13},  # grass_shrub
+        4: {"B2": 0.05, "B3": 0.04, "B4": 0.03, "B5": 0.02, "B6": 0.01, "B7": 0.01, "B8": 0.01, "B8A": 0.01, "B11": 0.005, "B12": 0.002},  # water
+        5: {"B2": 0.10, "B3": 0.12, "B4": 0.16, "B5": 0.19, "B6": 0.21, "B7": 0.22, "B8": 0.23, "B8A": 0.24, "B11": 0.30, "B12": 0.26},  # bare
     }
 
-    n_samples = 2400
+    n_samples = 6000  # 600 per county x 10
     for i in range(n_samples):
         r_idx = i % len(REGIONS)
         region = REGIONS[r_idx]
         c_idx = (i // len(REGIONS)) % len(CLASS_NAMES)
 
         base = class_profiles[c_idx]
-        row = {"label": c_idx, "class_name": CLASS_NAMES[c_idx], "region": region}
+        row = {
+            "label": c_idx,
+            "class_name": CLASS_NAMES[c_idx],
+            "region": region,
+            "climate_zone": CLIMATE_ZONES.get(region, "unknown"),
+        }
 
-        # Add noise
+        # Add noise scaled per region type (arid regions have higher bare-soil variance)
+        noise_scale = 0.15 if CLIMATE_ZONES.get(region, "") == "asal_zone" else 0.12
         for b, val in base.items():
-            noise = np.random.normal(0, val * 0.12)
+            noise = np.random.normal(0, val * noise_scale)
             row[b] = float(np.clip(val + noise, 0.001, 1.0))
 
         rows.append(row)
@@ -84,8 +141,19 @@ def generate_synthetic_eda_data() -> pd.DataFrame:
 
 
 def run_eda():
-    """Runs complete EDA workflow and produces markdown and figure outputs."""
+    """Runs complete EDA workflow and produces markdown and figure outputs.
+
+    Outputs are written to:
+      1. docs/eda/          — git-tracked (always)
+      2. Drive/…/eda/       — Drive backup (Colab only, when mounted)
+    """
+    _EDA_DIR.mkdir(parents=True, exist_ok=True)
     _FIGURES_DIR.mkdir(parents=True, exist_ok=True)
+
+    drive = _drive_eda_dir()
+    if drive:
+        (drive / "figures").mkdir(parents=True, exist_ok=True)
+        print(f"Drive EDA backup active → {drive}")
     print("==================================================")
     print("Exploratory Data Analysis (EDA) & Feature Analysis")
     print("==================================================")
@@ -93,6 +161,10 @@ def run_eda():
     df = load_dataset_samples()
     if df is None:
         df = generate_synthetic_eda_data()
+
+    # Add climate_zone column if region column is present
+    if "region" in df.columns and "climate_zone" not in df.columns:
+        df["climate_zone"] = df["region"].map(CLIMATE_ZONES).fillna("unknown")
 
     # Map numerical label to class string if needed
     if "class_name" not in df.columns and "label" in df.columns:
@@ -143,6 +215,7 @@ def run_eda():
         plt.savefig(spec_plot_path, dpi=300)
         plt.close()
         print(f"Saved figure → {spec_plot_path}")
+        _mirror_to_drive(spec_plot_path)
 
         # Plot 2: Spectral Indices Boxplot (NDVI, NDWI, NDBI, BSI)
         fig, axes = plt.subplots(2, 2, figsize=(12, 10))
@@ -159,16 +232,41 @@ def run_eda():
         plt.savefig(indices_plot_path, dpi=300)
         plt.close()
         print(f"Saved figure → {indices_plot_path}")
+        _mirror_to_drive(indices_plot_path)
+
+        # Extra plot: sample count per county per class (heatmap)
+        try:
+            if "region" in df.columns:
+                fig2, ax2 = plt.subplots(figsize=(14, 6))
+                ct = pd.crosstab(df["region"], df["class_name"])
+                im = ax2.imshow(ct.values, aspect="auto", cmap="YlGn")
+                ax2.set_xticks(range(len(ct.columns)))
+                ax2.set_xticklabels(ct.columns, rotation=30, ha="right")
+                ax2.set_yticks(range(len(ct.index)))
+                ax2.set_yticklabels(ct.index)
+                ax2.set_title("Sample Count per County × Class", fontsize=13, fontweight="bold")
+                fig2.colorbar(im, ax=ax2, label="# samples")
+                plt.tight_layout()
+                county_heatmap_path = _FIGURES_DIR / "county_class_heatmap.png"
+                fig2.savefig(county_heatmap_path, dpi=300)
+                plt.close(fig2)
+                print(f"Saved figure → {county_heatmap_path}")
+                _mirror_to_drive(county_heatmap_path)
+        except Exception as hm_exc:
+            print(f"Note: county heatmap skipped ({hm_exc})")
 
     except Exception as exc:
         print(f"Note: Plot rendering skipped ({exc}). Data tables generated successfully.")
 
     # 5. Generate Markdown Report
-    report_md = f"""# Kenya Land Cover EDA & Feature Analysis Report
+    n_counties = df["region"].nunique() if "region" in df.columns else len(REGIONS)
+    n_zones    = df["climate_zone"].nunique() if "climate_zone" in df.columns else 5
+    report_md = f"""# Kenya Land Cover EDA & Feature Analysis Report — 10 Counties
 
 ## 1. Executive Summary
-- **Total Samples Analyzed**: {len(df):,} observations across Kenya's 4 ecological study zones.
-- **Regions**: {", ".join(df['region'].unique() if 'region' in df.columns else REGIONS)}
+- **Total Samples Analyzed**: {len(df):,} observations across Kenya's {n_counties} counties.
+- **Climate Zones**: {n_zones} distinct zones (Highland, Coastal, ASAL, Lake Basin, Rift Valley).
+- **Counties**: {", ".join(df['region'].unique() if 'region' in df.columns else REGIONS)}
 - **Feature Space**: 10 Sentinel-2 bands + 8 calculated remote sensing indices (NDVI, NDWI, MNDWI, NDBI, EVI, SAVI, BSI, NDRE).
 
 ## 2. Land Cover Class Distribution
@@ -190,11 +288,23 @@ def run_eda():
 3. **Regional Domain Shift**: Arid region background soils elevate baseline BSI across all classes, explaining LORO domain transfer drops. Class weighting + label smoothing + spectral data augmentation are required to boost CNN LORO Macro-F1 > 0.55.
 """
 
-    report_path = _REPORTS_DIR / "eda_report.md"
+    # Write to docs/eda/ (git-tracked primary)
+    report_path = _EDA_DIR / "eda_report.md"
+    report_path.parent.mkdir(parents=True, exist_ok=True)
     with open(report_path, "w") as f:
         f.write(report_md)
-
     print(f"\nSaved EDA report → {report_path}")
+    _mirror_to_drive(report_path)
+
+    # Also write a copy directly under docs/ for backward compatibility
+    legacy_path = _REPORTS_DIR / "eda_report.md"
+    shutil.copy2(report_path, legacy_path)
+
+    print("==================================================")
+    print(f"EDA outputs → LOCAL : {_EDA_DIR}")
+    drive_out = _drive_eda_dir()
+    if drive_out:
+        print(f"EDA outputs → DRIVE : {drive_out}")
     print("==================================================")
 
 

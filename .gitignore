@@ -2,12 +2,14 @@
 models/*.onnx
 models/*.pt
 data/raw/*.csv
+data/raw/chunks_*/           # per-county chunk CSVs (runtime, backed up to Drive)
 data/patches/*.npy
 data/patches/manifest.csv
 data/splits/*.csv
 data/splits/*.parquet
 data/county_summaries/*.json
 data/county_summaries/*.csv
+data/progress/               # pipeline ledger state (runtime)
 monitoring/reports/*.html
 monitoring/reports/*.json
 monitoring/reports/*.parquet
@@ -21,3 +23,5 @@ dist/
 .pytest_cache/
 .ruff_cache/
 coverage.xml
+
+# docs/eda/ is intentionally NOT ignored — EDA outputs are git-tracked

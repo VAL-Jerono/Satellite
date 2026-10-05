@@ -2,12 +2,18 @@
 data/pipeline/ee_pull.py
 ────────────────────────
 Pulls Sentinel-2 spectral features + WorldCover 2021 labels from Google Earth
-Engine for all regions defined in configs/regions.yaml.
+Engine for any subset of the 10 regions defined in configs/regions.yaml.
 
-Outputs a CSV to paths.raw_csv (cached; re-run is a no-op if cache exists).
+Outputs per-county chunk CSVs under data/raw/chunks_YEAR_nN/.
+A master CSV is assembled by run_pipeline.py after all counties are done.
+Progress is tracked in data/progress/ledger.json (never starts from scratch).
 
 Run from repo root:
-    python -m data.pipeline.ee_pull --project YOUR_GCP_PROJECT
+    # Pull all 10 counties (2 at a time via orchestrator):
+    python -m data.pipeline.run_pipeline --project YOUR_GCP_PROJECT
+
+    # Or pull specific counties directly:
+    python -m data.pipeline.ee_pull --project YOUR_GCP_PROJECT --counties highland muranga
 """
 
 import argparse
@@ -33,8 +39,9 @@ CLASSES     = _RGN["classes"]
 K           = len(CLASSES)
 REMAP_FROM  = _RGN["worldcover_remap"]["from"]
 REMAP_TO    = _RGN["worldcover_remap"]["to"]
-REGIONS     = {k: v["bbox"] for k, v in _RGN["regions"].items()}
-OUT_CSV     = _ROOT / _CFG["paths"]["raw_csv"]
+REGIONS      = {k: v["bbox"]         for k, v in _RGN["regions"].items()}
+CLIMATE_ZONE = {k: v.get("climate_zone", "unknown") for k, v in _RGN["regions"].items()}
+OUT_CSV      = _ROOT / _CFG["paths"]["raw_csv"]
 
 BANDS = ["B2", "B3", "B4", "B5", "B6", "B7", "B8", "B8A", "B11", "B12"]
 IDX   = ["NDVI", "NDWI", "MNDWI", "NDBI"]
@@ -172,7 +179,22 @@ def _pull_region(name: str, bbox: list, n_split: int = 4) -> pd.DataFrame:
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
-def pull(project: str, force: bool = False) -> pd.DataFrame:
+def pull(
+    project: str,
+    force: bool = False,
+    counties: "list[str] | None" = None,
+    drive_dir: "Path | None" = None,
+) -> pd.DataFrame:
+    """
+    Pull EE samples for the given counties (default: all 10).
+
+    Parameters
+    ----------
+    project    : GCP project registered for Earth Engine
+    force      : Ignore existing chunk CSVs and re-pull
+    counties   : List of county names to pull (None = all)
+    drive_dir  : Optional Google Drive backup directory
+    """
     try:
         ee.Initialize(project=project)
     except Exception as exc:
@@ -182,31 +204,59 @@ def pull(project: str, force: bool = False) -> pd.DataFrame:
         ) from exc
     print("Earth Engine ready")
 
-    OUT_CSV.parent.mkdir(parents=True, exist_ok=True)
+    target = {k: v for k, v in REGIONS.items() if counties is None or k in counties}
+    if not target:
+        raise ValueError(f"No valid counties in: {counties}")
 
-    if OUT_CSV.exists() and not force:
-        df = pd.read_csv(OUT_CSV)
-        print(f"Cache hit: {OUT_CSV}  ({df.shape[0]} rows)")
-    else:
-        parts = []
-        for name, bbox in REGIONS.items():
+    OUT_CSV.parent.mkdir(parents=True, exist_ok=True)
+    CHUNK_DIR.mkdir(parents=True, exist_ok=True)
+
+    parts = []
+    for name, bbox in target.items():
+        # Check if all sub-tile chunks already exist (skip if so and not forced)
+        sub_bboxes = _get_sub_bboxes(bbox, n_split=4)
+        chunks_done = all(
+            (CHUNK_DIR / f"chunk_{name}_sub{i}.csv").exists()
+            for i in range(len(sub_bboxes))
+        )
+        if chunks_done and not force:
+            print(f"[Cache] All chunks exist for '{name}' — loading from disk")
+            dfs = [pd.read_csv(CHUNK_DIR / f"chunk_{name}_sub{i}.csv")
+                   for i in range(len(sub_bboxes))]
+            parts.append(pd.concat(dfs, ignore_index=True))
+        else:
             t0 = time.time()
             print(f"--- Sampling region: {name} ---")
             parts.append(_pull_region(name, bbox))
             print(f"Done {name}: {len(parts[-1])} total points in {time.time()-t0:.0f}s\n")
-        df = pd.concat(parts, ignore_index=True)
-        df.to_csv(OUT_CSV, index=False)
-        print(f"Saved {OUT_CSV}  ({df.shape[0]} rows)")
 
+        # Drive backup of this county's chunks
+        if drive_dir is not None:
+            import shutil
+            drive_chunks = Path(drive_dir) / f"chunks_{YEAR}_n{PER_CLASS}"
+            drive_chunks.mkdir(parents=True, exist_ok=True)
+            for cp in CHUNK_DIR.glob(f"chunk_{name}_*.csv"):
+                target_cp = drive_chunks / cp.name
+                if not target_cp.exists():
+                    shutil.copy(cp, target_cp)
+            hist_src = CHUNK_DIR / f"hist_{name}.json"
+            if hist_src.exists():
+                shutil.copy(hist_src, drive_chunks / hist_src.name)
+
+    df = pd.concat(parts, ignore_index=True)
     df = df.dropna(subset=FEATURES + ["label"]).reset_index(drop=True)
     df["label"] = df["label"].astype(int)
     return df
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--project", required=True, help="GCP project registered for EE")
-    parser.add_argument("--force",   action="store_true", help="Ignore cache and re-pull")
+    parser = argparse.ArgumentParser(
+        description="Pull EE samples for one or more Kenya counties."
+    )
+    parser.add_argument("--project",  required=True, help="GCP project registered for EE")
+    parser.add_argument("--force",    action="store_true", help="Ignore cache and re-pull")
+    parser.add_argument("--counties", nargs="+", default=None,
+                        help="County names to pull (default: all 10)")
     args = parser.parse_args()
-    df = pull(args.project, args.force)
+    df = pull(args.project, force=args.force, counties=args.counties)
     print(df.groupby(["region", "label"]).size().unstack(fill_value=0))

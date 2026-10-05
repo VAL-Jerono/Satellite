@@ -1,18 +1,75 @@
-# Kenya study regions
+# Kenya study regions — 10 counties across 5 climate zones
 # [min_lon, min_lat, max_lon, max_lat]
+#
+# Climate zones:
+#   highland_zone  — Central Highlands (cool, wet, high NDVI)
+#   coastal_zone   — Coastal strip (humid, tropical)
+#   asal_zone      — Arid & Semi-Arid (sparse vegetation, bare rock)
+#   lake_zone      — Lake Victoria Basin (sub-humid, wetland-heavy)
+#   rift_zone      — Rift Valley (savanna, pyroclastic soils, soda lakes)
+#
 regions:
+  # ── Zone 1: Central Highlands ─────────────────────────────────────────────
   highland:
     bbox: [36.30, -0.60, 36.80, -0.10]
+    climate_zone: highland_zone
     description: "Central Highlands (Nyeri / Kirinyaga) – Aberdare foothills, mixed crops, high NDVI"
+  muranga:
+    bbox: [36.90, -0.90, 37.40, -0.40]
+    climate_zone: highland_zone
+    description: "Murang'a – tea estates, dense highland forest, similar NDVI profile to Nyeri"
+  nyandarua:
+    bbox: [36.20, -0.80, 36.70, -0.20]
+    climate_zone: highland_zone
+    description: "Nyandarua – high-altitude moorland, pyrethrum farms, montane grassland"
+
+  # ── Zone 2: Coastal Strip ─────────────────────────────────────────────────
   coast:
     bbox: [39.40, -3.90, 39.90, -3.40]
+    climate_zone: coastal_zone
     description: "Coastal strip (Kilifi) – mangrove, bare coral, cropland, urban fringe"
+  kwale:
+    bbox: [39.10, -4.40, 39.65, -3.80]
+    climate_zone: coastal_zone
+    description: "Kwale – coastal dunes, cashew farms, mangrove swamps, dryland bush"
+  lamu:
+    bbox: [40.70, -2.40, 41.30, -1.80]
+    climate_zone: coastal_zone
+    description: "Lamu – isolated coast, dryland bush, shoreline vegetation, islands"
+
+  # ── Zone 3: Arid & Semi-Arid North (ASAL) ────────────────────────────────
   arid:
     bbox: [37.50, 1.50, 38.00, 2.00]
-    description: "Northern arid zone (Marsabit) – bare rock, sparse grass, low NDVI"
+    climate_zone: asal_zone
+    description: "Northern arid zone (Marsabit) – bare rock, lava desert, sparse grass"
+  turkana:
+    bbox: [35.20, 3.20, 35.80, 3.80]
+    climate_zone: asal_zone
+    description: "Turkana – extreme arid, Lake Turkana edge, scrubland, sand flats"
+  wajir:
+    bbox: [40.20, 1.60, 40.80, 2.20]
+    climate_zone: asal_zone
+    description: "Wajir – dry acacia shrubland, sand dunes, pastoralist landscape"
+
+  # ── Zone 4: Lake Victoria Basin ───────────────────────────────────────────
   lake_basin:
     bbox: [34.60, -0.30, 35.10, 0.20]
+    climate_zone: lake_zone
     description: "Lake Victoria basin (Kisumu fringe) – rice, water, wetland, urban"
+  siaya:
+    bbox: [34.00, -0.30, 34.60, 0.30]
+    climate_zone: lake_zone
+    description: "Siaya – smallholder farms, lake shoreline, papyrus wetland"
+
+  # ── Zone 5: Rift Valley (entirely new zone) ───────────────────────────────
+  nakuru:
+    bbox: [35.80, -0.60, 36.30, -0.10]
+    climate_zone: rift_zone
+    description: "Nakuru – flamingo soda lake, wheat farms, Mau forest edge"
+  kajiado:
+    bbox: [36.60, -2.00, 37.20, -1.40]
+    climate_zone: rift_zone
+    description: "Kajiado – Maasai Mara border, dry savanna, acacia grassland"
 
 # WorldCover v200 remap: original codes -> 6-class scheme
 worldcover_remap:

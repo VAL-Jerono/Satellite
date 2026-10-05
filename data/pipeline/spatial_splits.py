@@ -2,12 +2,15 @@
 data/pipeline/spatial_splits.py
 ────────────────────────────────
 Builds buffered spatial-block folds from the patch manifest.
+Supports both county-level (LORO) and climate-zone-level (LOZO) splits.
 
 Writes:
     data/splits/fold_{k}_train.csv
     data/splits/fold_{k}_val.csv
-    data/splits/loro_{region}_train.csv   (leave-one-region-out)
+    data/splits/loro_{region}_train.csv   (leave-one-region-out, per county)
     data/splits/loro_{region}_val.csv
+    data/splits/lozo_{zone}_train.csv     (leave-one-zone-out, per climate zone)
+    data/splits/lozo_{zone}_val.csv
     data/splits/split_summary.json
 
 Run from repo root:
@@ -92,7 +95,7 @@ def build_splits(project: str = "propertysatellite"):
         summary["folds"].append(info)
         print(f"Fold {k}: train {len(tr_raw)} → {len(tr)} (buffered) | val {len(te)}")
 
-    # ── Leave-one-region-out ──────────────────────────────────────────────────
+    # ── Leave-one-region-out (county-level) ──────────────────────────────────
     loro = []
     for region in df["region"].unique():
         te_idx = np.where(df["region"].values == region)[0]
@@ -102,6 +105,24 @@ def build_splits(project: str = "propertysatellite"):
         loro.append(dict(held_out=region, train=int(len(tr_idx)), val=int(len(te_idx))))
         print(f"LORO {region}: train {len(tr_idx)} | val {len(te_idx)}")
     summary["loro"] = loro
+
+    # ── Leave-one-zone-out (climate-zone-level) ───────────────────────────────
+    # Requires a 'climate_zone' column in the manifest (added by ee_pull v2)
+    _RGN2 = yaml.safe_load((_ROOT / "configs" / "regions.yaml").read_text())
+    zone_map = {k: v.get("climate_zone", "unknown") for k, v in _RGN2["regions"].items()}
+
+    if "climate_zone" not in df.columns:
+        df["climate_zone"] = df["region"].map(zone_map).fillna("unknown")
+
+    lozo = []
+    for zone in df["climate_zone"].unique():
+        te_idx = np.where(df["climate_zone"].values == zone)[0]
+        tr_idx = np.where(df["climate_zone"].values != zone)[0]
+        df.iloc[tr_idx].to_csv(SPLITS_DIR / f"lozo_{zone}_train.csv", index=False)
+        df.iloc[te_idx].to_csv(SPLITS_DIR / f"lozo_{zone}_val.csv",   index=False)
+        lozo.append(dict(held_out_zone=zone, train=int(len(tr_idx)), val=int(len(te_idx))))
+        print(f"LOZO {zone}: train {len(tr_idx)} | val {len(te_idx)}")
+    summary["lozo"] = lozo
 
     # ── Save reference features for Evidently ────────────────────────────────
     ref_path = SPLITS_DIR / "reference_features.parquet"
