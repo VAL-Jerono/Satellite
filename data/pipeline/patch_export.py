@@ -15,7 +15,8 @@ Run from repo root:
 """
 
 import argparse
-import ee
+# NOTE: `import ee` is deferred to inside functions — module imports cleanly
+# without earthengine-api being available in the environment.
 import numpy as np
 import pandas as pd
 import yaml
@@ -37,7 +38,8 @@ IN_CSV      = _ROOT / _CFG["paths"]["raw_csv"]
 PATCHES_DIR = _ROOT / _CFG["paths"]["patches_dir"]
 
 
-def _s2_composite(geom: ee.Geometry) -> ee.Image:
+def _s2_composite(geom: "ee.Geometry") -> "ee.Image":
+    import ee
     csp = ee.ImageCollection("GOOGLE/CLOUD_SCORE_PLUS/V1/S2_HARMONIZED")
     s2  = (ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
            .filterDate(f"{YEAR}-01-01", f"{YEAR+1}-01-01")
@@ -49,7 +51,7 @@ def _s2_composite(geom: ee.Geometry) -> ee.Image:
               .toFloat())
 
 
-def _export_patch(row, project: str, out_dir: Path) -> str | None:
+def _export_patch(row, project: str, out_dir: Path) -> "str | None":
     """Downloads one patch as an np.float32 array of shape (C, H, W)."""
     lon, lat = row["lon"], row["lat"]
     fname    = out_dir / f"{row['region']}_{int(row['label'])}_{row.name}.npy"
@@ -64,6 +66,7 @@ def _export_patch(row, project: str, out_dir: Path) -> str | None:
             fname.unlink(missing_ok=True)
 
     try:
+        import ee
         ee.Initialize(project=project)   # safe to call multiple times
         geom   = ee.Geometry.Point([lon, lat]).buffer(HALF_M).bounds()
         img    = _s2_composite(geom)
@@ -92,13 +95,20 @@ def _export_patch(row, project: str, out_dir: Path) -> str | None:
 
 
 def export_patches(project: str, resume: bool = True, workers: int = 8):
+    import ee
     try:
         ee.Initialize(project=project)
-    except Exception as exc:
-        raise RuntimeError(
-            f"Failed to initialize Earth Engine with project '{project}': {exc}\n"
-            "If running in Google Colab, please run `import ee; ee.Authenticate()` in an interactive notebook cell first."
-        ) from exc
+    except Exception:
+        # Credentials not yet set — attempt interactive auth (works in Colab)
+        try:
+            ee.Authenticate()
+            ee.Initialize(project=project)
+        except Exception as auth_exc:
+            raise RuntimeError(
+                f"Failed to initialize Earth Engine with project '{project}'.\n"
+                "Please run `import ee; ee.Authenticate()` in a notebook cell first,\n"
+                f"then retry.  Original error: {auth_exc}"
+            ) from auth_exc
 
     csv_path = IN_CSV
     if not csv_path.exists():

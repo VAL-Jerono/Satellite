@@ -199,13 +199,20 @@ def pull(
     counties   : List of county names to pull (None = all)
     drive_dir  : Optional Google Drive backup directory
     """
+    import ee
     try:
         ee.Initialize(project=project)
-    except Exception as exc:
-        raise RuntimeError(
-            f"Failed to initialize Earth Engine with project '{project}': {exc}\n"
-            "If running in Google Colab, please run `import ee; ee.Authenticate()` in an interactive notebook cell first."
-        ) from exc
+    except Exception:
+        # Credentials missing — attempt interactive auth (works in Colab)
+        try:
+            ee.Authenticate()
+            ee.Initialize(project=project)
+        except Exception as auth_exc:
+            raise RuntimeError(
+                f"Failed to initialize Earth Engine with project '{project}'.\n"
+                "Please run `import ee; ee.Authenticate()` in a notebook cell first,\n"
+                f"then retry. Original error: {auth_exc}"
+            ) from auth_exc
     print("Earth Engine ready")
 
     target = {k: v for k, v in REGIONS.items() if counties is None or k in counties}

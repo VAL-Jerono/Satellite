@@ -52,21 +52,19 @@ def _drive_dir() -> "Path | None":
 
 def run_ee_pull(county: str, project: str, force: bool = False) -> bool:
     """Pull EE samples for a single county. Returns True on success."""
-    from data.pipeline.ee_pull import pull_region, CHUNK_DIR
-    import ee
-    try:
-        ee.Initialize(project=project)
-    except Exception as exc:
-        print(f"  [EE] Init error: {exc}")
-        return False
-
+    from data.pipeline.ee_pull import pull, CHUNK_DIR
     CHUNK_DIR.mkdir(parents=True, exist_ok=True)
-    bbox = REGION_BBOXES[county]
     print(f"  [EE] Pulling {county} ...")
     t0 = time.time()
     try:
-        df = pull_region(county, bbox, n_split=4)
-        print(f"  [EE] {county} done: {len(df)} points in {time.time()-t0:.0f}s")
+        drive = _drive_dir()
+        pull(
+            project=project,
+            force=force,
+            counties=[county],
+            drive_dir=drive,
+        )
+        print(f"  [EE] {county} done in {time.time()-t0:.0f}s")
         return True
     except Exception as exc:
         print(f"  [EE] ERROR on {county}: {exc}")
