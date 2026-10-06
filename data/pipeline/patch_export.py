@@ -136,16 +136,9 @@ def export_patches(project: str, resume: bool = True, workers: int = 8):
             import shutil
             shutil.copy(drive_manifest, manifest_path)
             print(f"Copied manifest from Drive: {drive_manifest}")
+        # Note: Do NOT loop over 27,000+ files to copy from Drive -> local disk
+        # as Google Drive FUSE will freeze Colab. We read directly from Drive or process on-demand.
 
-        drive_npy = list(drive_patches.glob("*.npy"))
-        if drive_npy:
-            import shutil
-            print(f"Syncing {len(drive_npy)} cached patch files from Drive...")
-            for p in drive_npy:
-                dest = PATCHES_DIR / p.name
-                if not dest.exists():
-                    shutil.copy(p, dest)
-            print("Drive patch sync complete.")
 
     # Find which patches still need to be downloaded
     rows_todo = df[~df.apply(
