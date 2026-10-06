@@ -30,6 +30,7 @@ _CFG  = yaml.safe_load((_ROOT / "configs" / "config.yaml").read_text())
 BLOCK_DEG   = _CFG["training"]["block_deg"]
 N_FOLDS     = _CFG["training"]["n_folds"]
 MANIFEST    = _ROOT / _CFG["paths"]["patches_dir"] / "manifest.csv"
+MASTER_CSV  = _ROOT / _CFG["paths"]["raw_csv"]
 SPLITS_DIR  = _ROOT / _CFG["paths"]["splits_dir"]
 
 
@@ -58,27 +59,48 @@ def _buffer_filter(df: pd.DataFrame, train_idx, test_idx) -> np.ndarray:
 
 
 def build_splits(project: str = "propertysatellite"):
-    manifest_path = MANIFEST
-    if not manifest_path.exists() or manifest_path.stat().st_size == 0:
-        drive_patches = Path("/content/drive/MyDrive/land_atlas_baseline/patches")
-        if (drive_patches / "manifest.csv").exists() and (drive_patches / "manifest.csv").stat().st_size > 0:
-            MANIFEST.parent.mkdir(parents=True, exist_ok=True)
-            import shutil
-            shutil.copytree(drive_patches, MANIFEST.parent, dirs_exist_ok=True)
-            print(f"Copied patches & manifest from Drive: {drive_patches} -> {MANIFEST.parent}")
-        else:
-            print(f"Patch manifest not found or empty at {manifest_path}. Running patch export...")
-            from data.pipeline.patch_export import export_patches
-            export_patches(project=project, resume=True, workers=12)
+    """
+    Build spatial-block CV + LORO + LOZO splits.
 
-    if not manifest_path.exists() or manifest_path.stat().st_size == 0:
+    Data source priority:
+      1. manifest.csv  — when .npy patches are present locally (CNN workflow)
+      2. master CSV    — always has lon/lat from EE pull; used for tabular ML
+    """
+    df = None
+
+    # ── Try manifest.csv first (patch-level splits for CNN) ───────────────────
+    manifest_path = MANIFEST
+    if manifest_path.exists() and manifest_path.stat().st_size > 0:
+        try:
+            tmp = pd.read_csv(manifest_path)
+            if len(tmp) > 0 and {"lon", "lat", "region", "label"}.issubset(tmp.columns):
+                df = tmp
+                print(f"  [SPLITS] Using patch manifest: {len(df)} patches")
+        except Exception as exc:
+            print(f"  [SPLITS] WARN: could not read manifest.csv ({exc}) — falling back to master CSV")
+
+    # ── Fall back to master CSV (tabular ML splits) ───────────────────────────
+    if df is None:
+        drive_csv = Path("/content/drive/MyDrive/land_atlas_baseline") / MASTER_CSV.name
+        csv_candidates = [MASTER_CSV, drive_csv]
+        for candidate in csv_candidates:
+            if candidate.exists() and candidate.stat().st_size > 0:
+                try:
+                    tmp = pd.read_csv(candidate)
+                    if len(tmp) > 0 and {"lon", "lat", "region", "label"}.issubset(tmp.columns):
+                        df = tmp
+                        print(f"  [SPLITS] Using master CSV: {len(df)} rows from {candidate}")
+                        break
+                except Exception as exc:
+                    print(f"  [SPLITS] WARN: could not read {candidate}: {exc}")
+
+    if df is None:
         raise FileNotFoundError(
-            f"Patch manifest missing or empty: '{manifest_path}'.\n"
-            "Patch export did not complete or patch files are missing. "
-            "Please run: python -m data.pipeline.patch_export --project YOUR_GCP_PROJECT"
+            "Cannot build splits: neither manifest.csv nor master CSV are available.\n"
+            f"Expected master CSV at: {MASTER_CSV}\n"
+            "Run the pipeline merge_csv stage first."
         )
 
-    df = pd.read_csv(manifest_path)
     df = _assign_blocks(df)
     SPLITS_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -126,9 +148,11 @@ def build_splits(project: str = "propertysatellite"):
 
     # ── Save reference features for Evidently ────────────────────────────────
     ref_path = SPLITS_DIR / "reference_features.parquet"
-    df.iloc[summary["folds"][0]["train"] if summary["folds"] else 0:].to_parquet(
-        ref_path, index=False
-    )
+    if summary["folds"]:
+        first_fold_train_indices = list(range(summary["folds"][0]["train"]))
+        df.iloc[first_fold_train_indices].to_parquet(ref_path, index=False)
+    else:
+        df.to_parquet(ref_path, index=False)
 
     with open(SPLITS_DIR / "split_summary.json", "w") as f:
         json.dump(summary, f, indent=2)
