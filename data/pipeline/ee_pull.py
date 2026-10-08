@@ -205,15 +205,16 @@ def pull(
     try:
         ee.Initialize(project=project)
     except Exception:
-        # Credentials missing — attempt interactive auth (works in Colab)
+        # Credentials missing — use Colab-safe notebook auth
         try:
-            ee.Authenticate()
+            ee.Authenticate(auth_mode="notebook")
             ee.Initialize(project=project)
         except Exception as auth_exc:
             raise RuntimeError(
-                f"Failed to initialize Earth Engine with project '{project}'.\n"
-                "Please run `import ee; ee.Authenticate()` in a notebook cell first,\n"
-                f"then retry. Original error: {auth_exc}"
+                "Earth Engine auth failed. Run this in its own notebook cell first:\n"
+                "  import ee; ee.Authenticate(auth_mode='notebook'); "
+                f"ee.Initialize(project='{project}')\n"
+                f"Original error: {auth_exc}"
             ) from auth_exc
     print("Earth Engine ready")
 

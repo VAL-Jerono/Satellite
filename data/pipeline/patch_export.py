@@ -99,15 +99,17 @@ def export_patches(project: str, resume: bool = True, workers: int = 8):
     try:
         ee.Initialize(project=project)
     except Exception:
-        # Credentials not yet set — attempt interactive auth (works in Colab)
+        # Credentials not yet set — use Colab-safe notebook auth
         try:
-            ee.Authenticate()
+            auth_mode = "notebook"  # correct mode for Colab interactive cells
+            ee.Authenticate(auth_mode=auth_mode)
             ee.Initialize(project=project)
         except Exception as auth_exc:
             raise RuntimeError(
-                f"Failed to initialize Earth Engine with project '{project}'.\n"
-                "Please run `import ee; ee.Authenticate()` in a notebook cell first,\n"
-                f"then retry.  Original error: {auth_exc}"
+                "Earth Engine auth failed. Run this in its own notebook cell first:\n"
+                "  import ee; ee.Authenticate(auth_mode='notebook'); "
+                f"ee.Initialize(project='{project}')\n"
+                f"Original error: {auth_exc}"
             ) from auth_exc
 
     csv_path = IN_CSV
@@ -165,7 +167,8 @@ def export_patches(project: str, resume: bool = True, workers: int = 8):
         if fname.exists():
             manifest_records.append(dict(
                 filename=str(fname), region=r["region"], label=int(r["label"]),
-                lon=r["lon"], lat=r["lat"], weight=r["weight"],
+                lon=r["lon"], lat=r["lat"],
+                weight=float(r.get("weight", 1.0)),   # safe: older chunk CSVs lack weight
             ))
 
     manifest_df = pd.DataFrame(manifest_records)

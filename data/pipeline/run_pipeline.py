@@ -91,13 +91,20 @@ def run_patch_export(county: str, project: str, workers: int = 8) -> bool:
     dfs = []
     for cp in sorted(county_chunks):
         try:
-            dfs.append(pd.read_csv(cp))
+            d = pd.read_csv(cp)
+            # Backfill: older chunk CSVs written before weight column was added
+            if "weight" not in d.columns:
+                d["weight"] = 1.0
+            dfs.append(d)
         except Exception:
             pass
     if not dfs:
         return False
 
     df = pd.concat(dfs, ignore_index=True)
+    if "weight" not in df.columns:
+        df["weight"] = 1.0
+
     print(f"  [PATCH] Exporting {len(df)} patches for {county} ...")
 
     try:
@@ -180,7 +187,11 @@ def run_merge_csv() -> bool:
         dfs = []
         for cp in county_chunks:
             try:
-                dfs.append(pd.read_csv(cp))
+                d = pd.read_csv(cp)
+                # Backfill: older chunk CSVs written before weight was added
+                if "weight" not in d.columns:
+                    d["weight"] = 1.0
+                dfs.append(d)
             except Exception:
                 pass
         if dfs:
@@ -192,6 +203,9 @@ def run_merge_csv() -> bool:
         return False
 
     df_all = pd.concat(parts, ignore_index=True)
+    # Ensure weight column always exists in master CSV
+    if "weight" not in df_all.columns:
+        df_all["weight"] = 1.0
     OUT_CSV.parent.mkdir(parents=True, exist_ok=True)
     df_all.to_csv(OUT_CSV, index=False)
     print(f"  [MERGE] Master CSV saved: {OUT_CSV} ({len(df_all)} rows)")
