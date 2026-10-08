@@ -116,13 +116,18 @@ def run_patch_export(county: str, project: str, workers: int = 8) -> bool:
     from data.pipeline.patch_export import _export_patch, PATCHES_DIR
     from concurrent.futures import ThreadPoolExecutor, as_completed
 
-    PATCHES_DIR.mkdir(parents=True, exist_ok=True)
+    drive_patches = Path("/content/drive/MyDrive/land_atlas_baseline/patches")
 
-    # Only download missing patches
-    rows_todo = df[~df.apply(
-        lambda r: (PATCHES_DIR / f"{r['region']}_{int(r['label'])}_{r.name}.npy").exists(),
-        axis=1
-    )]
+    # Only download missing patches (check local and Drive)
+    def _patch_exists(r):
+        fn = f"{r['region']}_{int(r['label'])}_{r.name}.npy"
+        if (PATCHES_DIR / fn).exists():
+            return True
+        if drive_patches.exists() and (drive_patches / fn).exists():
+            return True
+        return False
+
+    rows_todo = df[~df.apply(_patch_exists, axis=1)]
     print(f"  [PATCH] Need to download: {len(rows_todo)} / {len(df)}")
 
     if len(rows_todo) > 0:

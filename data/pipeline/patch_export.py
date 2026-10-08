@@ -143,10 +143,15 @@ def export_patches(project: str, resume: bool = True, workers: int = 8):
 
 
     # Find which patches still need to be downloaded
-    rows_todo = df[~df.apply(
-        lambda r: (PATCHES_DIR / f"{r['region']}_{int(r['label'])}_{r.name}.npy").exists(),
-        axis=1
-    )]
+    def _patch_exists(r):
+        fn = f"{r['region']}_{int(r['label'])}_{r.name}.npy"
+        if (PATCHES_DIR / fn).exists():
+            return True
+        if drive_patches.exists() and (drive_patches / fn).exists():
+            return True
+        return False
+
+    rows_todo = df[~df.apply(_patch_exists, axis=1)]
     print(f"Patches to download: {len(rows_todo)} / {len(df)}")
 
     if len(rows_todo) > 0:
