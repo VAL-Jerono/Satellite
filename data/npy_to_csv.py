@@ -170,27 +170,22 @@ def convert(
     patches_dir: Optional[str] = None,
     out_path: "str | Path" = DEFAULT_OUT,
     workers: int = 4,
-    append: bool = False,
+    append: bool = True,
     chunk_size: int = 500,
 ) -> Path:
     """
     Main entry point.  Converts .npy patches to a flat tabular CSV.
-
-    Parameters
-    ----------
-    patches_dir : str or None
-        Path to directory containing .npy files. Auto-detected if None.
-    out_path : str or Path
-        Output CSV path.
-    workers : int
-        Number of parallel worker processes for loading patches.
-        Use 1 for Colab (avoids multiprocessing pickling issues).
-    append : bool
-        If True and out_path exists, skip already-processed patches and append.
-    chunk_size : int
-        Write intermediate results every N patches (crash resilience).
     """
     out_path = Path(out_path)
+
+    # ── Skip early if output CSV already exists and append=True ─────────────
+    if append and out_path.exists() and out_path.stat().st_size > 0:
+        try:
+            existing_df = pd.read_csv(out_path, usecols=["filename"])
+            if len(existing_df) > 0:
+                print(f"[npy_to_csv] Output CSV already exists with {len(existing_df)} rows at {out_path}.")
+        except Exception:
+            pass
 
     # ── Find patch directory ──────────────────────────────────────────────────
     patch_dir = find_patch_dir(patches_dir)
@@ -214,18 +209,28 @@ def convert(
             axis=1,
         )
 
-    # ── Skip already-processed patches (resume) ───────────────────────────────
+    # ── Skip already-processed patches (resume & skip logic) ───────────────────
     already_done: set = set()
-    if append and out_path.exists():
-        existing = pd.read_csv(out_path, usecols=["filename"])
-        already_done = set(existing["filename"].astype(str))
-        print(f"  Resuming: {len(already_done)} patches already in {out_path}")
+    if append and out_path.exists() and out_path.stat().st_size > 0:
+        try:
+            existing = pd.read_csv(out_path, usecols=["filename"])
+            for fn in existing["filename"].dropna():
+                s = str(fn)
+                already_done.add(s)
+                already_done.add(Path(s).name)  # match by basename as well
+            print(f"  Existing output found: {len(existing)} rows already in {out_path}")
+        except Exception as exc:
+            print(f"  Warning loading existing CSV: {exc}")
 
-    todo = manifest[~manifest["filename"].astype(str).isin(already_done)]
+    def _is_done(f_path: str) -> bool:
+        s = str(f_path)
+        return (s in already_done) or (Path(s).name in already_done)
+
+    todo = manifest[~manifest["filename"].astype(str).apply(_is_done)]
     print(f"[npy_to_csv] Patches to process: {len(todo)} / {len(manifest)}")
 
     if len(todo) == 0:
-        print("[npy_to_csv] Nothing to do — CSV is already complete.")
+        print(f"[npy_to_csv] Nothing to process — {out_path} is already up to date with {len(manifest)} patches.")
         return out_path
 
     # ── Build arg list ────────────────────────────────────────────────────────
