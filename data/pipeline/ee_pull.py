@@ -47,7 +47,14 @@ OUT_CSV      = _ROOT / _CFG["paths"]["raw_csv"]
 
 BANDS = ["B2", "B3", "B4", "B5", "B6", "B7", "B8", "B8A", "B11", "B12"]
 IDX   = ["NDVI", "NDWI", "MNDWI", "NDBI"]
-EXTRA = ["NDVI_p10", "NDVI_p90", "NDVI_stdDev", "elev", "slope"]
+EXTRA = [
+    "NDVI_p10", "NDVI_p90", "NDVI_stdDev",  # annual NDVI range
+    "ndvi_wet",             # Mar-May long rains composite
+    "ndvi_dry",             # Jul-Sep dry season composite
+    "ndvi_seasonal_swing",  # ndvi_wet - ndvi_dry  (KEY discriminant)
+    "elev", "slope",
+    "twi",                  # Topographic Wetness Index (flood-risk proxy)
+]
 FEATURES = BANDS + IDX + EXTRA
 
 
@@ -72,14 +79,24 @@ def _label_image() -> "ee.Image":
 def _feature_image(geom: "ee.Geometry") -> "ee.Image":
     import ee
     csp = ee.ImageCollection("GOOGLE/CLOUD_SCORE_PLUS/V1/S2_HARMONIZED")
-    s2 = (
-        ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
-        .filterDate(f"{YEAR}-01-01", f"{YEAR+1}-01-01")
-        .filterBounds(geom)
-        .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", 30))
-        .linkCollection(csp, ["cs_cdf"])
-        .map(lambda im: im.updateMask(im.select("cs_cdf").gte(CLOUD_THRESH)))
-    )
+
+    def _masked_s2(date_start: str, date_end: str) -> "ee.ImageCollection":
+        """Return a cloud-masked S2 collection for a given date window."""
+        return (
+            ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
+            .filterDate(date_start, date_end)
+            .filterBounds(geom)
+            .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", 30))
+            .linkCollection(csp, ["cs_cdf"])
+            .map(lambda im: im.updateMask(im.select("cs_cdf").gte(CLOUD_THRESH)))
+        )
+
+    # Full-year collection for annual median + NDVI stats
+    s2_annual = _masked_s2(f"{YEAR}-01-01", f"{YEAR+1}-01-01")
+
+    # Seasonal sub-collections (Kenya long rains = Mar-May; dry = Jul-Sep)
+    s2_wet = _masked_s2(f"{YEAR}-03-01", f"{YEAR}-06-01")
+    s2_dry = _masked_s2(f"{YEAR}-07-01", f"{YEAR}-10-01")
 
     def _add_idx(im):
         im = im.select(BANDS).divide(10000)
@@ -89,14 +106,52 @@ def _feature_image(geom: "ee.Geometry") -> "ee.Image":
         ndbi  = im.normalizedDifference(["B11", "B8" ]).rename("NDBI")
         return im.addBands([ndvi, ndwi, mndwi, ndbi])
 
-    col        = s2.map(_add_idx)
+    col        = s2_annual.map(_add_idx)
     med        = col.select(BANDS + IDX).median()
+
+    # Annual NDVI range statistics
     ndvi_stats = col.select("NDVI").reduce(
         ee.Reducer.minMax().combine(ee.Reducer.stdDev(), sharedInputs=True)
     ).rename(["NDVI_p10", "NDVI_p90", "NDVI_stdDev"])
-    elev  = ee.Image("USGS/SRTMGL1_003").rename("elev")
-    slope = ee.Terrain.slope(ee.Image("USGS/SRTMGL1_003")).rename("slope")
-    return med.addBands(ndvi_stats).addBands(elev).addBands(slope).select(FEATURES)
+
+    # ── NEW: Seasonal NDVI phenology features ────────────────────────────────
+    # ndvi_wet = mean NDVI during Kenya long rains (March–May)
+    # ndvi_dry = mean NDVI during dry season (July–September)
+    # ndvi_seasonal_swing = wet - dry  ← single most discriminative feature
+    #   Cropland: large positive swing (grows during rains, dies in dry)
+    #   Forest:   near-zero swing (evergreen canopy)
+    #   Bare soil: near-zero swing (always low)
+    #   Arid scrub: small positive swing
+    ndvi_wet   = s2_wet.map(_add_idx).select("NDVI").mean().rename("ndvi_wet")
+    ndvi_dry   = s2_dry.map(_add_idx).select("NDVI").mean().rename("ndvi_dry")
+    # Fallback: if seasonal collection is empty (heavy cloud cover), use annual median NDVI
+    annual_ndvi_med = col.select("NDVI").median()
+    ndvi_wet   = ndvi_wet.unmask(annual_ndvi_med)
+    ndvi_dry   = ndvi_dry.unmask(annual_ndvi_med)
+    ndvi_swing = ndvi_wet.subtract(ndvi_dry).rename("ndvi_seasonal_swing")
+
+    # ── NEW: Topographic Wetness Index (TWI) ─────────────────────────────────
+    # TWI = ln(flow_accumulation / (slope_rad + epsilon))
+    # High TWI → concave, low-lying areas that accumulate water (flood risk)
+    # Data: WWF HydroSHEDS 15-arc-second flow accumulation
+    elev       = ee.Image("USGS/SRTMGL1_003").rename("elev")
+    slope_deg  = ee.Terrain.slope(elev).rename("slope")
+    slope_rad  = slope_deg.multiply(3.14159265 / 180.0).add(0.001)  # avoid log(0)
+    flow_acc   = ee.Image("WWF/HydroSHEDS/15ACC").rename("flow_acc").toFloat()
+    # Clip flow_acc to geom extent and add 1 to avoid log(0) on flat areas
+    twi        = flow_acc.add(1).log().divide(slope_rad).rename("twi")
+
+    return (
+        med
+        .addBands(ndvi_stats)
+        .addBands(ndvi_wet)
+        .addBands(ndvi_dry)
+        .addBands(ndvi_swing)
+        .addBands(elev)
+        .addBands(slope_deg)
+        .addBands(twi)
+        .select(FEATURES)
+    )
 
 
 CHUNK_DIR = OUT_CSV.parent / f"chunks_{YEAR}_n{PER_CLASS}"
