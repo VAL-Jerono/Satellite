@@ -165,16 +165,25 @@ def export_patches(project: str, resume: bool = True, workers: int = 8):
                 if (i + 1) % 100 == 0 or (i + 1) == len(futures):
                     print(f"  {i+1}/{len(futures)} downloaded")
 
-    # Rebuild manifest index for all patch .npy files present on disk
+    # Rebuild manifest index — check both local disk AND Google Drive paths.
+    # This ensures the manifest has valid filenames even when patches live on Drive.
     manifest_records = []
+    drive_patches_mfst = Path("/content/drive/MyDrive/land_atlas_baseline/patches")
     for idx, r in df.iterrows():
-        fname = PATCHES_DIR / f"{r['region']}_{int(r['label'])}_{idx}.npy"
-        if fname.exists():
-            manifest_records.append(dict(
-                filename=str(fname), region=r["region"], label=int(r["label"]),
-                lon=r["lon"], lat=r["lat"],
-                weight=float(r.get("weight", 1.0)),   # safe: older chunk CSVs lack weight
-            ))
+        fname_local = PATCHES_DIR / f"{r['region']}_{int(r['label'])}_{idx}.npy"
+        fname_drive = drive_patches_mfst / f"{r['region']}_{int(r['label'])}_{idx}.npy"
+        # Prefer local path; fall back to Drive path so PatchDataset can load directly
+        if fname_local.exists():
+            use_path = fname_local
+        elif drive_patches_mfst.exists() and fname_drive.exists():
+            use_path = fname_drive
+        else:
+            continue
+        manifest_records.append(dict(
+            filename=str(use_path), region=r["region"], label=int(r["label"]),
+            lon=r["lon"], lat=r["lat"],
+            weight=float(r.get("weight", 1.0)),
+        ))
 
     manifest_df = pd.DataFrame(manifest_records)
     manifest_df.to_csv(manifest_path, index=False)

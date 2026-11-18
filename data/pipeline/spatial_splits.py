@@ -146,13 +146,15 @@ def build_splits(project: str = "propertysatellite"):
         print(f"LOZO {zone}: train {len(tr_idx)} | val {len(te_idx)}")
     summary["lozo"] = lozo
 
-    # ── Save reference features for Evidently ────────────────────────────────
+    # ── Save reference features for Evidently drift monitoring ───────────────
+    # Use fold 0 training split (already written to disk) as the stable reference.
+    # Using the actual CSV avoids index-slice bugs when buffering changes row order.
     ref_path = SPLITS_DIR / "reference_features.parquet"
-    if summary["folds"]:
-        first_fold_train_indices = list(range(summary["folds"][0]["train"]))
-        df.iloc[first_fold_train_indices].to_parquet(ref_path, index=False)
-    else:
-        df.to_parquet(ref_path, index=False)
+    try:
+        fold0_train = pd.read_csv(SPLITS_DIR / "fold_0_train.csv")
+        fold0_train.to_parquet(ref_path, index=False)
+    except Exception as exc:
+        print(f"  [SPLITS] WARN: could not write reference parquet: {exc}")
 
     with open(SPLITS_DIR / "split_summary.json", "w") as f:
         json.dump(summary, f, indent=2)

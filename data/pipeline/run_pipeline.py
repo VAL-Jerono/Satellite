@@ -265,18 +265,26 @@ def rebuild_manifest() -> None:
 
     meta = pd.concat(meta_frames, ignore_index=True)
 
+    drive_patches = Path("/content/drive/MyDrive/land_atlas_baseline/patches")
     records = []
     for idx, row in meta.iterrows():
-        fname = PATCHES_DIR / f"{row['region']}_{int(row['label'])}_{idx}.npy"
-        if fname.exists():
-            records.append(dict(
-                filename=str(fname),
-                region=row["region"],
-                label=int(row["label"]),
-                lon=row["lon"],
-                lat=row["lat"],
-                weight=row.get("weight", 1.0),
-            ))
+        fname_local = PATCHES_DIR / f"{row['region']}_{int(row['label'])}_{idx}.npy"
+        fname_drive = drive_patches / f"{row['region']}_{int(row['label'])}_{idx}.npy"
+        # Prefer local path; fall back to Drive path so PatchDataset can load directly
+        if fname_local.exists():
+            use_path = fname_local
+        elif drive_patches.exists() and fname_drive.exists():
+            use_path = fname_drive
+        else:
+            continue
+        records.append(dict(
+            filename=str(use_path),
+            region=row["region"],
+            label=int(row["label"]),
+            lon=row["lon"],
+            lat=row["lat"],
+            weight=row.get("weight", 1.0),
+        ))
 
     manifest_df = pd.DataFrame(records)
     manifest_path = PATCHES_DIR / "manifest.csv"
@@ -345,6 +353,20 @@ def run_pipeline(
 
     led = Ledger(drive_dir=drive)
 
+    # ── Always restore manifest from Drive so CNN training gets real patch paths ─
+    # The manifest is built by patch_export and stored on Drive. After a Colab
+    # session restart, local /content/ is wiped but Drive persists. We restore
+    # the manifest here so spatial_splits can use it and PatchDataset can load patches.
+    if drive is not None:
+        drive_manifest = drive / "patches" / "manifest.csv"
+        local_manifest = _ROOT / _CFG["paths"]["patches_dir"] / "manifest.csv"
+        if drive_manifest.exists() and drive_manifest.stat().st_size > 0:
+            if not local_manifest.exists() or local_manifest.stat().st_size == 0:
+                local_manifest.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy(drive_manifest, local_manifest)
+                print(f"[Pipeline] Restored manifest from Drive → local "
+                      f"({drive_manifest.stat().st_size // 1024} KB)")
+
     print(led.summary())
     print()
 
@@ -386,8 +408,9 @@ def run_pipeline(
     if stage_filter and stage_filter not in ("ee_pull", "patch_export"):
         pass
     else:
-        # After all patches, rebuild manifest
-        if not stage_filter or stage_filter == "patch_export":
+        # Only rebuild manifest when patch_export actually ran (not when skipped).
+        # Rebuilding from an empty local disk would overwrite a valid Drive manifest with 0 entries.
+        if (not stage_filter or stage_filter == "patch_export") and not skip_patch_export:
             print("\n[Pipeline] === Rebuilding manifest ===")
             rebuild_manifest()
 

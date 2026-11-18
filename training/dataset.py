@@ -19,8 +19,12 @@ from typing import Tuple
 
 from data.compute_band_stats import load_band_stats, EMPIRICAL_BAND_MEAN, EMPIRICAL_BAND_STD
 
+# Use absolute path so band_stats.json resolves correctly regardless of CWD
+_ROOT_DS = Path(__file__).resolve().parents[1]
+_BAND_STATS_PATH = _ROOT_DS / "data" / "band_stats.json"
+
 # Load computed band statistics or fallback to high-fidelity empirical defaults
-_BAND_MEAN, _BAND_STD = load_band_stats()
+_BAND_MEAN, _BAND_STD = load_band_stats(_BAND_STATS_PATH)
 
 
 class PatchDataset(Dataset):
@@ -36,23 +40,10 @@ class PatchDataset(Dataset):
     def __init__(self, manifest_csv: str | Path, augment: bool = False):
         self.df       = pd.read_csv(manifest_csv)
         self.augment  = augment
-        self.mean, self.std = load_band_stats()
+        self.mean, self.std = load_band_stats(_ROOT_DS / "data" / "band_stats.json")
         self.mean_arr = self.mean[:, None, None]   # (C, 1, 1)
         self.std_arr  = self.std[:, None, None]
-
-        # Auto-sync patches from Drive if local files are missing after a Colab restart
-        drive_dir = Path("/content/drive/MyDrive/land_atlas_baseline/patches")
-        if drive_dir.exists() and len(self.df) > 0:
-            first_path = Path(self.df.iloc[0]["filename"])
-            if not first_path.exists():
-                print(f"Local patches missing at {first_path.parent}. Restoring from Drive: {drive_dir}...")
-                import shutil
-                first_path.parent.mkdir(parents=True, exist_ok=True)
-                for drive_file in drive_dir.glob("*.npy"):
-                    dest = first_path.parent / drive_file.name
-                    if not dest.exists():
-                        shutil.copy(drive_file, dest)
-                print("Restored patches from Drive.")
+        # NOTE: patches are loaded on-demand from Drive in __getitem__ — no bulk copy here.
 
     def __len__(self) -> int:
         return len(self.df)

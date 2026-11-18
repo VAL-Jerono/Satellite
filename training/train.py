@@ -23,6 +23,7 @@ import os
 import math
 import time
 from pathlib import Path
+from typing import Tuple
 
 os.environ["MLFLOW_ALLOW_FILE_STORE"] = "true"
 
@@ -158,8 +159,13 @@ def train_fold(
         scaler = None
 
     ga_steps = TC["gradient_accumulation"]
-    best_wf1, best_ckpt = -1.0, None
+    best_mf1, best_ckpt = -1.0, None
+    patience_max, patience_ctr = 7, 0
     history = []
+
+    # Ensure MLflow experiment is set even when train_fold is called directly
+    mlflow.set_tracking_uri(MLFLOW_URI)
+    mlflow.set_experiment("land_cover_cnn")
 
     with mlflow.start_run(run_name=run_name, nested=True):
         mlflow.log_params({
@@ -245,17 +251,23 @@ def train_fold(
             print(f"  epoch {epoch+1:03d} | loss {train_loss:.4f} | "
                   f"wAcc {mets['weighted_acc']:.4f} | mF1 {mets['macro_f1']:.4f} | ECE {mets['ece']:.4f}")
 
-            if mets["macro_f1"] > best_wf1:
-                best_wf1  = mets["macro_f1"]
+            if mets["macro_f1"] > best_mf1:
+                best_mf1  = mets["macro_f1"]
+                patience_ctr = 0
                 best_ckpt = MODEL_DIR / f"ckpt_fold_{fold_id}.pt"
                 MODEL_DIR.mkdir(parents=True, exist_ok=True)
                 torch.save({"model_state": model.state_dict(), "metrics": mets}, best_ckpt)
+            else:
+                patience_ctr += 1
+                if patience_ctr >= patience_max:
+                    print(f"  Early stopping at epoch {epoch+1} (no improvement for {patience_max} epochs)")
+                    break
 
-        mlflow.log_metric("best_macro_f1", best_wf1)
+        mlflow.log_metric("best_macro_f1", best_mf1)
         if best_ckpt and best_ckpt.exists():
             mlflow.log_artifact(str(best_ckpt))
-        print(f"  Best macro-F1: {best_wf1:.4f} → {best_ckpt}")
-    return best_ckpt, best_wf1, history
+        print(f"  Best macro-F1: {best_mf1:.4f} → {best_ckpt}")
+    return best_ckpt, best_mf1, history
 
 
 # ── Entry point ───────────────────────────────────────────────────────────────
