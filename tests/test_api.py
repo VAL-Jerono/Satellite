@@ -4,6 +4,9 @@ tests/test_api.py
 FastAPI unit tests using the test client (no live ONNX model needed).
 Patches the ONNX session with a random predictor.
 """
+import os
+os.environ["TESTING"] = "1"
+
 import numpy as np
 import pytest
 from fastapi.testclient import TestClient

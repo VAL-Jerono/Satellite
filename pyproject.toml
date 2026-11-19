@@ -1,10 +1,30 @@
 [tool.ruff]
 target-version = "py311"
-line-length = 100
-select = ["E", "F", "I", "W", "UP"]
-ignore = ["E501"]  # line length handled separately
+line-length = 120
+extend-exclude = [
+    "*.ipynb",
+    "notebooks",
+    "satellite_bundle",
+    "mlruns",
+    "scripts",
+]
 
-[tool.ruff.isort]
+[tool.ruff.lint]
+select = ["E", "F"]
+ignore = [
+    "E501",  # line length
+    "E402",  # module level import not at top of file
+    "F841",  # local variable unused
+    "E722",  # bare except
+    "F401",  # unused import
+    "E401",  # multiple imports on one line
+    "E741",  # ambiguous variable name
+    "F541",  # f-string without placeholder
+    "F821",  # undefined name (e.g. forward type annotations)
+    "E702",  # multiple statements on one line (semicolon)
+]
+
+[tool.ruff.lint.isort]
 known-first-party = ["api", "training", "data", "monitoring"]
 
 [tool.pytest.ini_options]

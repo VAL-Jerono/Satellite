@@ -155,15 +155,18 @@ def export_onnx(model: nn.Module, out_path: str | Path, patch_size: int = 64, in
     opset_ver = _CFG["serving"]["onnx_opset"] if _CFG_PATH.exists() else 17
 
     def _export():
-        torch.onnx.export(
-            model, dummy, str(out_path),
-            input_names=["sentinel2_patch"],
-            output_names=["class_logits"],
-            dynamic_axes={"sentinel2_patch": {0: "batch"}, "class_logits": {0: "batch"}},
-            opset_version=opset_ver,
-            export_params=True,
-            dynamo=False,
-        )
+        import inspect
+        kwargs = {
+            "input_names": ["sentinel2_patch"],
+            "output_names": ["class_logits"],
+            "dynamic_axes": {"sentinel2_patch": {0: "batch"}, "class_logits": {0: "batch"}},
+            "opset_version": opset_ver,
+            "export_params": True,
+        }
+        sig = inspect.signature(torch.onnx.export)
+        if "dynamo" in sig.parameters:
+            kwargs["dynamo"] = False
+        torch.onnx.export(model, dummy, str(out_path), **kwargs)
 
     try:
         _export()

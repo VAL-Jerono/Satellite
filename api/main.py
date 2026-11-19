@@ -71,6 +71,8 @@ _ZONE_MODELS: dict[str, Any] = {}
 _ZONE_CONFIDENCE: dict[str, float] = {}
 
 def _load_zone_models():
+    if os.getenv("TESTING") == "1":
+        return
     models_dir = _ROOT / "models"
     for pkl in sorted(models_dir.glob("lgbm_zone_*.pkl")):
         zone_name = pkl.stem.replace("lgbm_zone_", "")
@@ -483,7 +485,10 @@ def predict_point(req: PointRequest):
             model_type="lgbm_zone_stratified",
         )
 
-    # Path 4: Fallback synthetic distribution
+    # Path 4: Fallback synthetic distribution or 503 if no models available
+    if len(_ZONE_MODELS) == 0 and not os.getenv("GEE_PROJECT"):
+        raise HTTPException(status_code=503, detail="EE pull failed: GEE_PROJECT env var not set; cannot fetch live patch.")
+
     uniform_prob = 1.0 / len(CLASSES)
     dummy_probs = np.full(len(CLASSES), uniform_prob, dtype=np.float32)
     rec = recommend(dummy_probs, req.flood_risk, req.slope_deg)
