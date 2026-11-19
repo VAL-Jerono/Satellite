@@ -601,16 +601,8 @@ def _build_fallback_dossier(req: CopilotRequest) -> str:
 @app.post("/underwrite/copilot", response_model=CopilotResponse)
 def spatial_underwriting_copilot(req: CopilotRequest):
     sources = list(_RAG_REGULATORY_KNOWLEDGE.values())
-    api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
-
-    if api_key:
-        try:
-            import google.generativeai as genai
-            genai.configure(api_key=api_key)
-            model = genai.GenerativeModel("gemini-1.5-flash")
-
-            prompt = f"""
-You are an expert GIS Spatial Underwriter for African Trade Corridors and Real Estate.
+    
+    prompt = f"""You are an expert GIS Spatial Underwriter for African Trade Corridors and Real Estate.
 Synthesize an executive Underwriting Dossier for a site in Kenya with the following evidence:
 - Location: Lat {req.lat:.4f}, Lon {req.lon:.4f} ({req.county_name})
 - Model Prediction: {req.prediction} (Probabilities: {json.dumps(req.probabilities)})
@@ -625,8 +617,34 @@ Format your response as a professional Markdown report with sections:
 1. Executive Land Suitability Brief
 2. Regulatory Compliance & Environmental Hazard Assessment
 3. Strategic Underwriting & Capital Allocation Recommendation
-Keep it concise, rigorous, and professional.
-"""
+Keep it concise, rigorous, and professional."""
+
+    # ── Try GROQ first ──────────────────────────────────────────────────────
+    groq_key = os.getenv("GROQ_API_KEY")
+    if groq_key:
+        try:
+            from groq import Groq
+            client = Groq(api_key=groq_key)
+            chat = client.chat.completions.create(
+                messages=[{"role": "user", "content": prompt}],
+                model="llama-3.3-70b-versatile",
+                max_tokens=1024,
+            )
+            return CopilotResponse(
+                dossier=chat.choices[0].message.content.strip(),
+                llm_powered=True,
+                source_context=sources,
+            )
+        except Exception as exc:
+            print(f"GROQ call failed, trying Gemini: {exc}")
+
+    # ── Try Gemini ──────────────────────────────────────────────────────────
+    gemini_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+    if gemini_key:
+        try:
+            import google.generativeai as genai
+            genai.configure(api_key=gemini_key)
+            model = genai.GenerativeModel("gemini-1.5-flash")
             res = model.generate_content(prompt)
             return CopilotResponse(
                 dossier=res.text.strip(),
@@ -640,10 +658,11 @@ Keep it concise, rigorous, and professional.
                 llm_powered=False,
                 source_context=sources,
             )
-    else:
-        dossier = _build_fallback_dossier(req)
-        return CopilotResponse(
-            dossier=dossier,
-            llm_powered=False,
-            source_context=sources,
-        )
+
+    # ── Deterministic RAG fallback ───────────────────────────────────────────
+    dossier = _build_fallback_dossier(req)
+    return CopilotResponse(
+        dossier=dossier,
+        llm_powered=False,
+        source_context=sources,
+    )

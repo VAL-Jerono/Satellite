@@ -6,6 +6,8 @@ services:
       dockerfile: docker/Dockerfile.api
     container_name: land_atlas_api
     restart: unless-stopped
+    env_file:
+      - .env
     ports:
       - "80:8000"
       - "8000:8000"
@@ -20,6 +22,7 @@ services:
       - MPLCONFIGDIR=/tmp/mpl
       - GEE_PROJECT=${GEE_PROJECT:-}
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 30s

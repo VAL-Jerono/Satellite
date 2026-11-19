@@ -36,12 +36,12 @@ export const COUNTIES = [
 ];
 
 export const PRESETS = [
-  { name: "Nyeri (Highland)", lat: -0.4201, lon: 36.9476 },
-  { name: "Nakuru (Rift Valley)", lat: -0.3031, lon: 36.0800 },
-  { name: "Kisumu (Lake Basin)", lat: -0.0917, lon: 34.7680 },
-  { name: "Kilifi (Coast)", lat: -3.6305, lon: 39.8499 },
-  { name: "Turkana (ASAL)", lat: 3.1167, lon: 35.6000 },
-  { name: "Nairobi (Urban)", lat: -1.2921, lon: 36.8219 },
+  { name: "Nyeri (Highland)", lat: -0.4201, lon: 36.9476, zone: "highland_zone" },
+  { name: "Nakuru (Rift Valley)", lat: -0.3031, lon: 36.0800, zone: "rift_zone" },
+  { name: "Kisumu (Lake Basin)", lat: -0.0917, lon: 34.7680, zone: "lake_zone" },
+  { name: "Kilifi (Coast)", lat: -3.6305, lon: 39.8499, zone: "coastal_zone" },
+  { name: "Turkana (ASAL)", lat: 3.1167, lon: 35.6000, zone: "asal_zone" },
+  { name: "Nairobi (Urban)", lat: -1.2921, lon: 36.8219, zone: "rift_zone" },
 ];
 
 export const STUDY_REGIONS = [
@@ -60,3 +60,78 @@ export const STUDY_REGIONS = [
   { name: "Kajiado", bbox: [36.60, -2.00, 37.20, -1.40], zone: "rift_zone" },
 ];
 
+export const ZONE_COLORS = {
+  highland_zone: "#22c55e",   // green
+  coastal_zone:  "#38bdf8",   // sky blue
+  asal_zone:     "#f97316",   // orange
+  lake_zone:     "#06b6d4",   // cyan
+  rift_zone:     "#a855f7",   // purple
+};
+
+export const REGION_POINTS = {
+  "Central Highlands": [
+    { name: "Nyeri Town", lat: -0.4201, lon: 36.9476 },
+    { name: "Mweiga", lat: -0.2667, lon: 36.9833 },
+    { name: "Karatina", lat: -0.4833, lon: 37.1333 },
+  ],
+  "Murang'a": [
+    { name: "Murang'a Town", lat: -0.7167, lon: 37.1500 },
+    { name: "Kangema", lat: -0.6167, lon: 36.9833 },
+    { name: "Maragua", lat: -0.7333, lon: 37.1333 },
+  ],
+  "Nyandarua": [
+    { name: "Ol Kalou", lat: -0.2667, lon: 36.3833 },
+    { name: "Engineer", lat: -0.4000, lon: 36.4833 },
+    { name: "Kinangop", lat: -0.6333, lon: 36.6167 },
+  ],
+  "Coastal Strip (Kilifi)": [
+    { name: "Kilifi Town", lat: -3.6305, lon: 39.8499 },
+    { name: "Watamu", lat: -3.3667, lon: 39.9833 },
+    { name: "Malindi", lat: -3.2167, lon: 40.1167 },
+  ],
+  "Kwale": [
+    { name: "Kwale Town", lat: -4.1733, lon: 39.4522 },
+    { name: "Diani", lat: -4.3167, lon: 39.5667 },
+    { name: "Shimba Hills", lat: -4.2333, lon: 39.4167 },
+  ],
+  "Lamu": [
+    { name: "Lamu Town", lat: -2.2694, lon: 40.9020 },
+    { name: "Mpeketoni", lat: -2.1333, lon: 40.7000 },
+    { name: "Witu", lat: -2.3833, lon: 40.4333 },
+  ],
+  "Marsabit (Arid)": [
+    { name: "Marsabit Town", lat: 2.3333, lon: 37.9833 },
+    { name: "Laisamis", lat: 1.6167, lon: 37.8000 },
+    { name: "Moyale", lat: 3.5167, lon: 39.0500 },
+  ],
+  "Turkana": [
+    { name: "Lodwar", lat: 3.1167, lon: 35.6000 },
+    { name: "Lokichar", lat: 2.4167, lon: 35.6667 },
+    { name: "Kalokol", lat: 3.5167, lon: 35.8333 },
+  ],
+  "Wajir": [
+    { name: "Wajir Town", lat: 1.7500, lon: 40.0667 },
+    { name: "Habaswein", lat: 1.0167, lon: 39.4833 },
+    { name: "El Wak", lat: 2.8000, lon: 40.9333 },
+  ],
+  "Lake Basin (Kisumu)": [
+    { name: "Kisumu City", lat: -0.0917, lon: 34.7680 },
+    { name: "Ahero", lat: -0.1667, lon: 34.9167 },
+    { name: "Muhoroni", lat: -0.1667, lon: 35.1833 },
+  ],
+  "Siaya": [
+    { name: "Siaya Town", lat: 0.0603, lon: 34.2878 },
+    { name: "Yala", lat: 0.0833, lon: 34.5333 },
+    { name: "Bondo", lat: -0.1667, lon: 34.2667 },
+  ],
+  "Nakuru": [
+    { name: "Nakuru CBD", lat: -0.3031, lon: 36.0800 },
+    { name: "Naivasha", lat: -0.7167, lon: 36.4333 },
+    { name: "Gilgil", lat: -0.5000, lon: 36.3167 },
+  ],
+  "Kajiado": [
+    { name: "Kajiado Town", lat: -1.8522, lon: 36.7764 },
+    { name: "Ngong", lat: -1.3667, lon: 36.6500 },
+    { name: "Namanga", lat: -2.5500, lon: 36.7833 },
+  ],
+};

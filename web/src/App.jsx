@@ -7,6 +7,8 @@ import {
   COUNTIES,
   PRESETS,
   STUDY_REGIONS,
+  ZONE_COLORS,
+  REGION_POINTS,
 } from "./constants";
 import {
   Compass,
@@ -26,6 +28,22 @@ import {
   Copy,
   Check,
 } from "lucide-react";
+
+// ── Kenya National Boundary (simplified polygon) ───────────────────────────
+const KENYA_BOUNDARY = {
+  type: "Feature",
+  properties: { name: "Kenya" },
+  geometry: {
+    type: "Polygon",
+    coordinates: [[
+      [33.9, 4.6], [35.3, 4.7], [36.9, 4.4], [38.1, 3.9],
+      [39.5, 3.4], [41.0, 3.1], [41.9, 2.0], [41.5, 0.0],
+      [41.0, -1.6], [40.1, -2.5], [39.2, -4.7], [37.6, -4.5],
+      [35.8, -3.1], [34.0, -1.0], [33.9, 0.5], [34.1, 1.8],
+      [34.6, 3.5], [33.9, 4.6],
+    ]],
+  },
+};
 
 export default function App() {
   const [apiUrl, setApiUrl] = useState(
@@ -110,27 +128,64 @@ export default function App() {
       )
       .addTo(map);
 
-    // Add study regions
+    // ── Kenya National Boundary (always visible, not in layer switcher) ──────
+    L.geoJSON(KENYA_BOUNDARY, {
+      style: {
+        color: "#00ff88",
+        weight: 2,
+        fillOpacity: 0,
+        dashArray: "6,4",
+      },
+    }).addTo(map);
+
+    // ── Study Regions: colored rectangles + permanent labels + circle markers ─
     STUDY_REGIONS.forEach((r) => {
       const [minLon, minLat, maxLon, maxLat] = r.bbox;
+      const zoneColor = ZONE_COLORS[r.zone] || "#06b6d4";
+
+      // Colored rectangle
       L.rectangle(
         [
           [minLat, minLon],
           [maxLat, maxLon],
         ],
         {
-          color: "#06b6d4",
+          color: zoneColor,
           weight: 1.5,
-          fillColor: "#06b6d4",
-          fillOpacity: 0.08,
+          fillColor: zoneColor,
+          fillOpacity: 0.15,
           dashArray: "4, 4",
         }
       )
-        .bindTooltip(`<b>${r.name}</b><br><span style="color:#67e8f9">${r.zone}</span>`, {
-          sticky: true,
-          className: "custom-tooltip",
+        .bindTooltip(`<b>${r.name}</b><br/><span style="color:${zoneColor}">${r.zone.replace("_zone", "").toUpperCase()}</span>`, {
+          permanent: true,
+          direction: "center",
+          className: "custom-tooltip region-label",
         })
         .addTo(map);
+
+      // Prediction circle markers for each point in this region
+      const points = REGION_POINTS[r.name] || [];
+      points.forEach((pt) => {
+        const cm = L.circleMarker([pt.lat, pt.lon], {
+          radius: 7,
+          color: "white",
+          weight: 1.5,
+          fillColor: zoneColor,
+          fillOpacity: 0.9,
+        });
+
+        cm.bindPopup(
+          `<b>${pt.name}</b><br/><span style="color:${zoneColor}">${r.zone.replace("_zone", "").toUpperCase()}</span><br/>Click to analyze`
+        );
+
+        cm.on("click", () => {
+          map.flyTo([pt.lat, pt.lon], 11, { duration: 1.2 });
+          setSelectedCoords({ lat: pt.lat, lon: pt.lon });
+        });
+
+        cm.addTo(map);
+      });
     });
 
     // Custom pulsing pin icon
@@ -344,29 +399,42 @@ export default function App() {
         <div className="relative flex-1 h-full bg-slate-950">
           <div ref={mapRef} className="w-full h-full" />
 
-          {/* Quick Coordinate Presets Pill Bar */}
+          {/* Quick Coordinate Presets Pill Bar — zone-colored pills */}
           <div className="absolute top-4 left-4 z-[1000] flex flex-wrap gap-1.5 p-1.5 bg-slate-900/80 backdrop-blur-md rounded-xl border border-slate-800/80 shadow-2xl">
             <span className="text-[11px] text-slate-400 flex items-center px-2 font-medium">
               Presets:
             </span>
-            {PRESETS.map((p) => (
-              <button
-                key={p.name}
-                onClick={() => {
-                  setSelectedCoords({ lat: p.lat, lon: p.lon });
-                  if (mapInstance.current) {
-                    mapInstance.current.flyTo([p.lat, p.lon], 10, { duration: 1.2 });
+            {PRESETS.map((p) => {
+              const zoneColor = ZONE_COLORS[p.zone] || "#06b6d4";
+              const isActive = selectedCoords.lat === p.lat;
+              return (
+                <button
+                  key={p.name}
+                  onClick={() => {
+                    setSelectedCoords({ lat: p.lat, lon: p.lon });
+                    if (mapInstance.current) {
+                      mapInstance.current.flyTo([p.lat, p.lon], 10, { duration: 1.2 });
+                    }
+                  }}
+                  className={`text-xs px-2.5 py-1 rounded-lg transition-all flex items-center gap-1.5 ${
+                    isActive
+                      ? "text-slate-950 font-bold shadow-md"
+                      : "bg-slate-800/60 hover:bg-slate-800 text-slate-300"
+                  }`}
+                  style={
+                    isActive
+                      ? { backgroundColor: zoneColor, boxShadow: `0 2px 10px ${zoneColor}50` }
+                      : { borderColor: `${zoneColor}60`, border: `1px solid ${zoneColor}60` }
                   }
-                }}
-                className={`text-xs px-2.5 py-1 rounded-lg transition-all ${
-                  selectedCoords.lat === p.lat
-                    ? "bg-cyan-500 text-slate-950 font-bold shadow-md shadow-cyan-500/30"
-                    : "bg-slate-800/60 hover:bg-slate-700 text-slate-300"
-                }`}
-              >
-                {p.name}
-              </button>
-            ))}
+                >
+                  <span
+                    className="w-2 h-2 rounded-full shrink-0"
+                    style={{ backgroundColor: zoneColor }}
+                  />
+                  {p.name}
+                </button>
+              );
+            })}
           </div>
 
           {/* Map Footer Helper */}
@@ -701,4 +769,3 @@ export default function App() {
     </div>
   );
 }
-
