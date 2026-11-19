@@ -131,11 +131,30 @@ col_map, col_results = st.columns([3, 1.2])
 
 with col_map:
     m = folium.Map(
-        location=[0.5, 37.5],
+        location=[0.5, 37.8],
         zoom_start=6,
-        tiles="CartoDB dark_matter",
+        tiles="OpenStreetMap",
         prefer_canvas=True,
     )
+
+    # Kenya national boundary outline
+    kenya_geo_path = Path(__file__).resolve().parents[1] / "data" / "kenya_boundary.geojson"
+    if kenya_geo_path.exists():
+        import json
+        with open(kenya_geo_path) as f:
+            kenya_geo = json.load(f)
+        folium.GeoJson(
+            kenya_geo,
+            name="Kenya National Boundary",
+            style_function=lambda feature: {
+                "fillColor": "#2b8a3e",
+                "fillOpacity": 0.04,
+                "color": "#1b4332",
+                "weight": 2.5,
+                "dashArray": "6, 6",
+            },
+            tooltip="Republic of Kenya (National Boundary)",
+        ).add_to(m)
 
     if show_tiles:
         folium.TileLayer(
@@ -151,7 +170,11 @@ with col_map:
         bb = info["bbox"]  # [min_lon, min_lat, max_lon, max_lat]
         folium.Rectangle(
             bounds=[[bb[1], bb[0]], [bb[3], bb[2]]],
-            color="#7ec8e3", weight=1.5, fill=False,
+            color="#1d4ed8",
+            weight=1.5,
+            fill=True,
+            fill_color="#3b82f6",
+            fill_opacity=0.07,
             tooltip=f"{region.replace('_',' ').title()} study region",
         ).add_to(m)
 
