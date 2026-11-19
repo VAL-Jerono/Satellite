@@ -199,8 +199,8 @@ with col_results:
         with st.spinner("Running inference …"):
             try:
                 resp = requests.post(
-                    f"{API_URL}/predict/point",
-                    json={"lat": lat, "lon": lon, "flood_risk": show_hazard},
+                    f"{API_URL}/predict/features",
+                    json={"lat": lat, "lon": lon, "flood_risk": show_hazard, "slope_deg": 0.0},
                     timeout=30,
                 )
                 resp.raise_for_status()
@@ -216,6 +216,17 @@ with col_results:
 
             badge_cls = {"settle": "badge-settle", "farm": "badge-farm", "protect": "badge-protect"}.get(action, "")
             conf_cls  = {"high": "conf-high", "medium": "conf-medium", "low": "conf-low"}.get(rec["confidence"], "")
+
+            # Zone metadata
+            zone = data.get("climate_zone", "unknown")
+            zone_conf = data.get("zone_confidence", 0.0)
+            model_type = data.get("model_type", "lgbm_zone_stratified")
+            st.markdown(
+                f"<div style='font-size:0.82rem;color:#718096;margin-bottom:0.5rem'>"
+                f"🌍 Zone: <b style='color:#90cdf4'>{zone.replace('_', ' ').title()}</b> &nbsp;|&nbsp; "
+                f"Model confidence: <b>{zone_conf:.1%}</b> &nbsp;|&nbsp; <code>{model_type}</code></div>",
+                unsafe_allow_html=True,
+            )
 
             st.markdown(f"""
             <div class="result-card">
