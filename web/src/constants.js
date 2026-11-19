@@ -1,4 +1,5 @@
-export const DEFAULT_API_URL = "http://192.248.170.201:8000";
+export const DEFAULT_API_URL =
+  import.meta.env.VITE_API_URL || "http://192.248.170.201";
 
 export const CLASSES = [
   "built_up",

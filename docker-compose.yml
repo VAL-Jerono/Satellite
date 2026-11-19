@@ -7,6 +7,7 @@ services:
     container_name: land_atlas_api
     restart: unless-stopped
     ports:
+      - "80:8000"
       - "8000:8000"
     volumes:
       # Models & data mounted as read-only — not baked in image so git-ignored large files work
