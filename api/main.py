@@ -88,6 +88,12 @@ def _load_zone_models():
         except Exception as exc:
             print(f"Warning: failed to load zone confidence: {exc}")
 
+    # Eagerly warm ONNX session
+    try:
+        _get_session()
+    except Exception as exc:
+        print(f"Notice: ONNX session eager init deferred: {exc}")
+
 _load_zone_models()
 
 

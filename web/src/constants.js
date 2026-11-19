@@ -58,3 +58,4 @@ export const STUDY_REGIONS = [
   { name: "Nakuru", bbox: [35.80, -0.60, 36.30, -0.10], zone: "rift_zone" },
   { name: "Kajiado", bbox: [36.60, -2.00, 37.20, -1.40], zone: "rift_zone" },
 ];
+
