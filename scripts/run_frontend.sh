@@ -18,3 +18,4 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 $STREAMLIT run frontend/app.py \
     --server.port 8501 \
     --server.headless true
+

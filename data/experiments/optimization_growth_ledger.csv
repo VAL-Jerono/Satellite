@@ -1,0 +1,11 @@
+timestamp,iteration,model_type,zone_or_scope,macro_f1,overall_acc,asal_f1,rift_f1,highland_f1,notes
+2026-11-19 13:35:51,01_baseline,Standard_LightGBM,National_Spatial_CV,0.4409,0.4444,0.3019,0.5507,0.471,Starting baseline with 27 features before zone specialization.
+2026-11-19 13:36:08,02_asal_specialist,ASAL_Specialist_LGBM,asal_zone,0.3668,0.3922,0.3668,,,ASAL F1 boosted from 0.3019 ➔ 0.3668 (+6.5%)
+2026-11-19 13:46:08,03_optuna_tuning,Optuna_Tuned_LGBM,All_5_Zones,0.4223,0.4723,,,,Optuna tuned 5 zones. Mean F1 across zones: 0.4223
+2026-11-19 14:19:10,04_spectral_cnn,Spectral_CNN_EfficientNet,National_Patch_Split,0.5249,0.5451,,,,Trained 10-channel Spectral CNN with channel attention on cpu.
+2026-11-19 14:19:52,05_stacking_ensemble,Stacked_Ensemble_LGBM_CNN,National_Holdout,0.9764,0.9764,,,,Stacked LightGBM probabilities + CNN probabilities with LogisticRegression meta-classifier.
+2026-11-19 14:40:21,01_baseline,Standard_LightGBM,National_Spatial_CV,0.4409,0.4444,0.3019,0.5507,0.471,Starting baseline with 27 features before zone specialization.
+2026-11-19 14:40:34,02_asal_specialist,ASAL_Specialist_LGBM,asal_zone,0.3668,0.3922,0.3668,,,ASAL F1 boosted from 0.3019 ➔ 0.3668 (+6.5%)
+2026-11-19 14:49:19,03_optuna_tuning,Optuna_Tuned_LGBM,All_5_Zones,0.4244,0.4744,,,,Optuna tuned 5 zones with preserved ASAL class weighting. Mean F1: 0.4244
+2026-11-19 15:22:56,04_spectral_cnn,Spectral_CNN_EfficientNet,Spatial_Block_Val,0.4502,0.4346,,,,Trained 10-channel Spectral CNN with channel attention on cpu (Spatial GroupKFold).
+2026-11-19 15:25:48,05_stacking_ensemble,Stacked_Ensemble_LGBM_CNN,Spatial_Holdout_OOF,0.6078,0.6054,,,,Leakage-free spatial OOF stacking of LightGBM + CNN with Logistic Regression.
