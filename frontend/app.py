@@ -133,9 +133,15 @@ with col_map:
     m = folium.Map(
         location=[0.5, 37.8],
         zoom_start=6,
-        tiles="OpenStreetMap",
+        tiles="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+        attr="Esri World Imagery",
         prefer_canvas=True,
     )
+    folium.TileLayer(
+        tiles="https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}",
+        attr="Esri World Topo",
+        name="Topographic Map",
+    ).add_to(m)
 
     # Kenya national boundary outline
     kenya_geo_path = Path(__file__).resolve().parents[1] / "data" / "kenya_boundary.geojson"
