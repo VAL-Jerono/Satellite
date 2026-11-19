@@ -38,6 +38,7 @@ import yaml
 from sklearn.metrics import f1_score, confusion_matrix
 
 from training.dataset import PatchDataset
+from training.dataset import warm_patch_cache
 from training.model   import build_model, export_onnx
 
 _ROOT       = Path(__file__).resolve().parents[1]
@@ -137,6 +138,12 @@ def train_fold(
     run_name: str,
     epochs: int = 30,
 ):
+    # ── Pre-stage patches from Drive → /tmp cache (avoids FUSE bottleneck) ──
+    # This runs ONCE per fold before DataLoader workers start. After this call,
+    # all patches are on local SSD so epochs are ~10× faster than Drive reads.
+    print(f"  [cache] Warming patch cache for fold {fold_id}…")
+    warm_patch_cache([train_csv, val_csv], verbose=True)
+
     train_ds = PatchDataset(train_csv, augment=True)
     val_ds   = PatchDataset(val_csv,   augment=False)
     train_dl = DataLoader(train_ds, batch_size=TC["batch_size"], shuffle=True,
@@ -149,7 +156,17 @@ def train_fold(
     criterion = FocalLossWithSmoothing(alpha=class_w, gamma=1.5, smoothing=0.1)
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=TC["lr"], weight_decay=TC["weight_decay"])
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs, eta_min=1e-6)
+
+    # Warmup for first 3 epochs, then cosine decay — critical for CNN convergence
+    # Without warmup, CosineAnnealingLR starts decaying LR from epoch 1 which
+    # prevents the model from escaping random-initialization loss plateau.
+    warmup_epochs = min(3, max(1, epochs // 10))
+    def lr_lambda(ep):
+        if ep < warmup_epochs:
+            return float(ep + 1) / float(warmup_epochs)
+        progress = float(ep - warmup_epochs) / float(max(1, epochs - warmup_epochs))
+        return max(1e-6 / TC["lr"], 0.5 * (1.0 + math.cos(math.pi * progress)))
+    scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lr_lambda)
 
     # PyTorch modern AMP scaler
     use_amp = (TC["mixed_precision"] and device.type == "cuda")
@@ -160,7 +177,9 @@ def train_fold(
 
     ga_steps = TC["gradient_accumulation"]
     best_mf1, best_ckpt = -1.0, None
-    patience_max, patience_ctr = 7, 0
+    # Increased patience: CNN needs ~15+ epochs to escape random-init plateau on Drive FUSE.
+    # patience=7 fires before any learning can occur — now set to 15.
+    patience_max, patience_ctr = 15, 0
     history = []
 
     # Ensure MLflow experiment is set even when train_fold is called directly
