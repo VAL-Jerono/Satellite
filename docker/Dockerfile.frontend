@@ -1,7 +1,12 @@
-# frontend/Dockerfile
+# docker/Dockerfile.frontend
+# ─────────────────────────────────────────────────────────────────
+# Streamlit map frontend — works on Render, Railway, Vultr, Fly.io
 FROM python:3.11-slim
 
 WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY frontend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
@@ -11,6 +16,7 @@ COPY configs/  ./configs/
 COPY data/county_summaries/ ./data/county_summaries/
 
 ENV PYTHONPATH=/app
+ENV MPLCONFIGDIR=/tmp/mpl
 
 EXPOSE 8501
 

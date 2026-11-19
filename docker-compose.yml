@@ -9,20 +9,24 @@ services:
     ports:
       - "8000:8000"
     volumes:
+      # Models & data mounted as read-only — not baked in image so git-ignored large files work
       - ./models:/app/models:ro
+      - ./data/atlas:/app/data/atlas:ro
       - ./data/county_summaries:/app/data/county_summaries:ro
       - tile_cache:/tmp/tiles
     environment:
       - OMP_NUM_THREADS=2
+      - MPLCONFIGDIR=/tmp/mpl
       - GEE_PROJECT=${GEE_PROJECT:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 20s
+      start_period: 25s
 
-  # ── Streamlit frontend ────────────────────────────────────────────────────
+  # ── Streamlit frontend ─────────────────────────────────────────────────────
   frontend:
     build:
       context: .
@@ -31,13 +35,16 @@ services:
     restart: unless-stopped
     ports:
       - "8501:8501"
+    volumes:
+      - ./data/county_summaries:/app/data/county_summaries:ro
     environment:
       - API_URL=http://api:8000
+      - MPLCONFIGDIR=/tmp/mpl
     depends_on:
       api:
         condition: service_healthy
 
-  # ── MLflow tracking server ────────────────────────────────────────────────
+  # ── MLflow experiment tracking ─────────────────────────────────────────────
   mlflow:
     image: ghcr.io/mlflow/mlflow:v2.13.0
     container_name: land_atlas_mlflow

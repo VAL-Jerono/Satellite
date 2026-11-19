@@ -1,0 +1,29 @@
+# .dockerignore
+# Keeps image lean — large local-only files excluded
+.git
+.gitignore
+*.md
+*.pdf
+*.ipynb
+notebooks/
+satellite_bundle/
+mlruns/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+tests/
+docs/
+land_cover_readiness_map.html
+
+# Git-ignored data (mount as volumes at runtime instead)
+data/raw/
+data/splits/
+monitoring/reports/
+models/*.onnx
+models/*.pt
+
+# Dev tooling
+Makefile
+.env
+scripts/run_*.sh

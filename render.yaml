@@ -1,0 +1,36 @@
+# render.yaml — Render.com deployment (free tier compatible)
+# Deploy the FastAPI + Streamlit as two separate Web Services
+# https://render.com/docs/blueprint-spec
+
+services:
+  # ── FastAPI API ────────────────────────────────────────────────────────────
+  - type: web
+    name: land-atlas-api
+    runtime: docker
+    dockerfilePath: ./docker/Dockerfile.api
+    dockerContext: .
+    plan: starter          # $7/mo — upgrade to standard for more RAM
+    region: oregon
+    envVars:
+      - key: OMP_NUM_THREADS
+        value: "2"
+      - key: GEMINI_API_KEY
+        sync: false          # set in Render dashboard
+      - key: GEE_PROJECT
+        sync: false
+    healthCheckPath: /health
+
+  # ── Streamlit Frontend ─────────────────────────────────────────────────────
+  - type: web
+    name: land-atlas-frontend
+    runtime: docker
+    dockerfilePath: ./docker/Dockerfile.frontend
+    dockerContext: .
+    plan: starter
+    region: oregon
+    envVars:
+      - key: API_URL
+        fromService:
+          name: land-atlas-api
+          type: web
+          property: host
