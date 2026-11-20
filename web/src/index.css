@@ -3,34 +3,147 @@
 @tailwind utilities;
 
 body {
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
   overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
 }
 
 code, pre {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
 }
 
-/* Custom map container */
+/* ── Leaflet map ───────────────────────────────── */
 .leaflet-container {
   width: 100%;
   height: 100%;
   background: #080c14;
 }
 
-/* Custom scrollbars */
-::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+/* ── Custom scrollbars ─────────────────────────── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: #0b1120; }
+::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+/* ── Animated probability fill bars ───────────── */
+@keyframes fillBar {
+  from { width: 0%; }
+  to   { width: var(--bar-width); }
 }
-::-webkit-scrollbar-track {
-  background: #0b1120;
-}
-::-webkit-scrollbar-thumb {
-  background: #334155;
-  border-radius: 4px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+.bar-fill {
+  animation: fillBar 0.9s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  width: 0%;
 }
 
+/* ── Score ring animation ──────────────────────── */
+@keyframes ringDraw {
+  from { stroke-dashoffset: 283; }
+  to   { stroke-dashoffset: var(--ring-offset); }
+}
+.ring-arc {
+  animation: ringDraw 1.1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  stroke-dashoffset: 283;
+}
+
+/* ── Fade-slide in for tab content ────────────── */
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.tab-enter {
+  animation: fadeSlideIn 0.35s ease forwards;
+}
+
+/* ── Pulse dot ─────────────────────────────────── */
+@keyframes pulseDot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.5; transform: scale(1.4); }
+}
+.pulse-dot { animation: pulseDot 1.6s ease-in-out infinite; }
+
+/* ── Pipeline step connector ───────────────────── */
+.pipeline-connector {
+  position: relative;
+}
+.pipeline-connector::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: -18px;
+  width: 18px;
+  height: 2px;
+  background: linear-gradient(90deg, #06b6d4, transparent);
+  transform: translateY(-50%);
+}
+
+/* ── County card hover glow ────────────────────── */
+.county-card {
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+.county-card:hover {
+  transform: translateY(-2px);
+}
+.county-card.active {
+  transform: translateY(-2px);
+}
+
+/* ── Tooltip for Leaflet ───────────────────────── */
+.custom-tooltip {
+  background: rgba(15, 23, 42, 0.95) !important;
+  border: 1px solid rgba(99, 102, 241, 0.3) !important;
+  border-radius: 8px !important;
+  color: #e2e8f0 !important;
+  font-size: 11px !important;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5) !important;
+}
+.custom-tooltip::before { display: none !important; }
+
+/* ── Mobile nav ────────────────────────────────── */
+@media (max-width: 640px) {
+  .tab-label { display: none; }
+  .tab-icon-only { padding: 8px 10px !important; }
+  .header-subtitle { display: none; }
+  .hero-site-name { font-size: 1.1rem !important; }
+}
+
+/* ── LOZO table ────────────────────────────────── */
+.lozo-table td, .lozo-table th {
+  padding: 10px 14px;
+  text-align: left;
+  border-bottom: 1px solid rgba(51,65,85,0.5);
+  font-size: 12px;
+}
+.lozo-table th {
+  color: #94a3b8;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+  background: rgba(15,23,42,0.6);
+}
+.lozo-table tr:hover td {
+  background: rgba(99,102,241,0.05);
+}
+
+/* ── Gradient text utility ─────────────────────── */
+.gradient-text-cyan {
+  background: linear-gradient(135deg, #e2e8f0 0%, #67e8f9 60%, #34d399 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Glassmorphism card ────────────────────────── */
+.glass-card {
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(51, 65, 85, 0.6);
+  border-radius: 16px;
+}
+
+/* ── Action verdict card ───────────────────────── */
+.verdict-settle  { background: linear-gradient(135deg, rgba(59,130,246,0.15), rgba(59,130,246,0.03)); border-color: rgba(59,130,246,0.35); }
+.verdict-farm    { background: linear-gradient(135deg, rgba(16,185,129,0.15), rgba(16,185,129,0.03)); border-color: rgba(16,185,129,0.35); }
+.verdict-protect { background: linear-gradient(135deg, rgba(245,158,11,0.15), rgba(245,158,11,0.03)); border-color: rgba(245,158,11,0.35); }
