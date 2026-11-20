@@ -3,7 +3,7 @@
 
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.111.0-009688.svg?logo=fastapi&logoColor=white)](http://192.248.170.201:8000/docs)
 [![MLflow](https://img.shields.io/badge/MLflow-2.13.0-0194E2.svg?logo=mlflow&logoColor=white)](http://192.248.170.201:5000)
-[![React](https://img.shields.io/badge/React-18.3.1-61DAFB.svg?logo=react&logoColor=black)](https://satellite-tau.vercel.app)
+[![React](https://img.shields.io/badge/React-18.3.1-61DAFB.svg?logo=react&logoColor=black)](https://satellite-l7a5.vercel.app/)
 [![Leaflet](https://img.shields.io/badge/Leaflet-1.9.4-199900.svg?logo=leaflet&logoColor=white)](https://leafletjs.com/)
 [![Docker](https://img.shields.io/badge/Docker-24.0.0-2496ED.svg?logo=docker&logoColor=white)](https://www.docker.com/)
 [![GROQ](https://img.shields.io/badge/GROQ-Llama_3.3_70B-F05A28.svg)](https://groq.com/)
@@ -14,7 +14,7 @@
 > **Author:** Valerie Jerono  
 > **Target Repository:** [https://github.com/VAL-Jerono/Satellite](https://github.com/VAL-Jerono/Satellite)  
 > **Production Cloud Server:** Vultr Cloud Compute (`192.248.170.201`), London GB (Ubuntu 24.04 LTS)  
-> **Live Production Frontend (Vercel):** [https://satellite-tau.vercel.app](https://satellite-tau.vercel.app)  
+> **Live Production Frontend (Vercel):** [https://satellite-l7a5.vercel.app/](https://satellite-l7a5.vercel.app/)  
 > **Live API Documentation (Swagger):** [http://192.248.170.201:8000/docs](http://192.248.170.201:8000/docs)  
 > **Live API Health & Telemetry:** [http://192.248.170.201:8000/health](http://192.248.170.201:8000/health)  
 > **Live MLflow Experiment Tracking:** [http://192.248.170.201:5000](http://192.248.170.201:5000)  

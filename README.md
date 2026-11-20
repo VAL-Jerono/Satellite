@@ -14,7 +14,7 @@
 > **Author:** Valerie Jerono  
 > **Target Repository:** [https://github.com/VAL-Jerono/Satellite](https://github.com/VAL-Jerono/Satellite)  
 > **Production Cloud Server:** Vultr Cloud Compute (`192.248.170.201`), London GB (Ubuntu 24.04 LTS)  
-> **Live Production Frontend (Vercel):** [https://satellite-tau.vercel.app](https://satellite-tau.vercel.app)  
+> **Live Production Frontend (Vercel):** [https://satellite-l7a5.vercel.app](https://satellite-tau.vercel.app)  
 > **Live API Documentation (Swagger):** [http://192.248.170.201:8000/docs](http://192.248.170.201:8000/docs)  
 > **Live API Health & Telemetry:** [http://192.248.170.201:8000/health](http://192.248.170.201:8000/health)  
 > **Live MLflow Experiment Tracking:** [http://192.248.170.201:5000](http://192.248.170.201:5000)  

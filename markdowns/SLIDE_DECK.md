@@ -6,7 +6,7 @@
 **Institution:** Strathmore University / iLabAfrica  
 **Course:** DSA 8401 - Applied Machine Learning  
 **Live Production API:** [http://192.248.170.201:8000/docs](http://192.248.170.201:8000/docs)  
-**Live Production Frontend:** [https://satellite-tau.vercel.app](https://satellite-tau.vercel.app)  
+**Live Production Frontend:** [https://satellite-l7a5.vercel.app/](https://satellite-l7a5.vercel.app/)  
 **Repository:** [https://github.com/VAL-Jerono/Satellite](https://github.com/VAL-Jerono/Satellite)  
 
 ---
@@ -303,7 +303,7 @@ SLIDE 13: CONCLUSION & STRATEGIC RECOMMENDATIONS
 ---
 
 **Live Production API:** [http://192.248.170.201:8000/docs](http://192.248.170.201:8000/docs)  
-**Live Frontend Application:** [https://satellite-tau.vercel.app](https://satellite-tau.vercel.app)  
+**Live Frontend Application:** [https://satellite-l7a5.vercel.app/](https://satellite-l7a5.vercel.app/)  
 **GitHub Repository:** [https://github.com/VAL-Jerono/Satellite](https://github.com/VAL-Jerono/Satellite)  
 
 *Thank you. Questions & Discussion.*
