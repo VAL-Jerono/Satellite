@@ -1,0 +1,65 @@
+services:
+  # ── FastAPI inference service ──────────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api
+    container_name: land_atlas_api
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "80:8000"
+      - "8000:8000"
+    volumes:
+      - ./models:/app/models:ro
+      - ./data/atlas:/app/data/atlas:ro
+      - ./data/county_summaries:/app/data/county_summaries:ro
+      - tile_cache:/tmp/tiles
+    environment:
+      - OMP_NUM_THREADS=2
+      - MPLCONFIGDIR=/tmp/mpl
+      - GEE_PROJECT=${GEE_PROJECT:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 25s
+
+  # ── Nginx - serves React build & proxies API ───────────────────────────────
+  nginx:
+    image: nginx:alpine
+    container_name: land_atlas_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./web/dist:/usr/share/nginx/html:ro
+      - ./docker/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      api:
+        condition: service_healthy
+
+  # ── MLflow experiment tracking ─────────────────────────────────────────────
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.13.0
+    container_name: land_atlas_mlflow
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./mlruns:/mlflow/mlruns
+      - mlflow_artifacts:/mlflow/artifacts
+    command: >
+      mlflow server
+      --backend-store-uri /mlflow/mlruns
+      --default-artifact-root /mlflow/artifacts
+      --host 0.0.0.0
+      --port 5000
+
+volumes:
+  tile_cache:
+  mlflow_artifacts:
