@@ -1,6 +1,6 @@
 # Strathmore University DSA 8401 Capstone Submission Checklist
 
-**Student Author:** Valary Jerono  
+**Student Author:** Valerie Jerono  
 **Institution:** Strathmore University, iLabAfrica  
 **Course:** DSA 8401 Applied Machine Learning (Capstone)  
 **Project:** Kenya Land Readiness Atlas: Spatial AI for Multi-Sector Land Underwriting  
@@ -62,4 +62,4 @@
 ---
 
 *Verified and Compiled: November 2026*  
-*Candidate: Valary Jerono (Strathmore University)*  
+*Candidate: Valerie Jerono (Strathmore University)*  

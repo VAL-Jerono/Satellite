@@ -1,7 +1,7 @@
 # Kenya Land Readiness Atlas: Capstone Presentation Deck 🛰️
 
 **Slide Deck for Oral Defense & Technical Presentation**  
-**Presenter:** Valary Jerono  
+**Presenter:** Valerie Jerono  
 **Academic Program:** Master of Science in Data Science & Analytics (MSc DSA)  
 **Institution:** Strathmore University / iLabAfrica  
 **Course:** DSA 8401 - Applied Machine Learning  
@@ -19,7 +19,7 @@ SLIDE 1: TITLE SLIDE
 # KENYA LAND READINESS ATLAS
 ### Ground-Truth Spatial AI for Multi-Sector Land-Use Underwriting, Statutory Zoning & MLOps Deployment
 
-**Candidate:** Valary Jerono  
+**Candidate:** Valerie Jerono  
 **Degree:** Master of Science in Data Science & Analytics (MSc DSA)  
 **Institution:** Strathmore University (iLabAfrica)  
 **Supervisors:** Dr. Javier Serrano & Dr. Emmanuel Bundi  

@@ -4,7 +4,7 @@
 **Strathmore University / iLabAfrica**  
 **Course:** DSA 8401 - Applied Machine Learning  
 **Project Title:** Kenya Land Readiness Atlas: Ground-Truth Spatial AI for Multi-Sector Land-Use Underwriting, Statutory Zoning & MLOps Deployment  
-**Candidate / Researcher:** Valary Jerono  
+**Candidate / Researcher:** Valerie Jerono  
 **Supervisors / Lecturers:** Dr. Javier Serrano & Dr. Emmanuel Bundi  
 **Academic Year:** 2026  
 
@@ -122,8 +122,8 @@ To guarantee complete scientific reproducibility without dependency on commercia
 
 I hereby confirm that I am the sole human author of this capstone project. I take full intellectual and ethical responsibility for the design, methodology, code, results, analysis, and conclusions presented in this work. All uses of Artificial Intelligence tools have been fully, accurately, and transparently disclosed in accordance with the standards of Strathmore University.
 
-**Candidate Name:** Valary Jerono  
+**Candidate Name:** Valerie Jerono  
 **Degree Program:** Master of Science in Data Science & Analytics (MSc DSA)  
 **Institution:** Strathmore University / iLabAfrica  
 **Date:** 20 November 2026  
-**Signature:** *Valary Jerono*  
+**Signature:** *Valerie Jerono*  

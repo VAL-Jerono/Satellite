@@ -11,7 +11,7 @@
 
 > **MSc Data Science & Analytics Capstone Project · Strathmore University (iLabAfrica)**  
 > **Course:** DSA 8401 - Applied Machine Learning  
-> **Author:** Valary Jerono  
+> **Author:** Valerie Jerono  
 > **Target Repository:** [https://github.com/VAL-Jerono/Satellite](https://github.com/VAL-Jerono/Satellite)  
 > **Production Cloud Server:** Vultr Cloud Compute (`192.248.170.201`), London GB (Ubuntu 24.04 LTS)  
 > **Live Production Frontend (Vercel):** [https://satellite-tau.vercel.app](https://satellite-tau.vercel.app)  
@@ -368,6 +368,6 @@ Satellite/
 
 ---
 
-**Lead Researcher:** Valary Jerono  
+**Lead Researcher:** Valerie Jerono  
 **Contact / GitHub:** [https://github.com/VAL-Jerono](https://github.com/VAL-Jerono)  
 **Program:** Master of Science in Data Science & Analytics (MSc DSA), Strathmore University (iLabAfrica)

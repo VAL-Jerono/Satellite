@@ -2,7 +2,7 @@
 
 **Strathmore University · iLabAfrica · School of Graduate Studies**  
 **Course Code:** DSA 8401 - Applied Machine Learning (Master of Science in Data Science & Analytics)  
-**Author:** Valary Jerono  
+**Author:** Valerie Jerono  
 **Faculty Lecturers:** Dr. Javier Serrano & Dr. Emmanuel Bundi  
 **Submission Date:** November 2026  
 **Repository:** [https://github.com/VAL-Jerono/Satellite](https://github.com/VAL-Jerono/Satellite)  
@@ -243,5 +243,5 @@ The **Kenya Land Readiness Atlas** demonstrates that applied machine learning, w
 
 ---
 
-*Valary Jerono · Master of Science in Data Science & Analytics · Strathmore University (iLabAfrica)*  
+*Valerie Jerono · Master of Science in Data Science & Analytics · Strathmore University (iLabAfrica)*  
 *November 2026*

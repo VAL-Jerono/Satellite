@@ -1777,7 +1777,7 @@ cells.append(md(
     "---",
     "",
     "*Kenya Land Readiness Atlas - Strathmore University DSA 8401 Capstone Submission*",
-    "*Author: Valary Jerono | November 2026*",
+    "*Author: Valerie Jerono | November 2026*",
     "",
     "[![GitHub Repository](https://img.shields.io/badge/GitHub-VAL--Jerono%2FSatellite-blue?logo=github)](https://github.com/VAL-Jerono/Satellite)",
     "[![Live Vultr Server](https://img.shields.io/badge/Production_Cloud-192.248.170.201-green)](http://192.248.170.201/health)",
