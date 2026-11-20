@@ -35,8 +35,8 @@ for pkl in sorted((ROOT / "models").glob("lgbm_zone_*.pkl")):
 
 print()
 if all_ok:
-    print("✅ All models verified — ready for deployment.")
+    print("✅ All models verified - ready for deployment.")
 else:
-    print("❌ Feature mismatch — retrain before deploying.")
+    print("❌ Feature mismatch - retrain before deploying.")
     sys.exit(1)
 

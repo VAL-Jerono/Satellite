@@ -1,12 +1,12 @@
-# Kenya study regions — 10 counties across 5 climate zones
+# Kenya study regions - 10 counties across 5 climate zones
 # [min_lon, min_lat, max_lon, max_lat]
 #
 # Climate zones:
-#   highland_zone  — Central Highlands (cool, wet, high NDVI)
-#   coastal_zone   — Coastal strip (humid, tropical)
-#   asal_zone      — Arid & Semi-Arid (sparse vegetation, bare rock)
-#   lake_zone      — Lake Victoria Basin (sub-humid, wetland-heavy)
-#   rift_zone      — Rift Valley (savanna, pyroclastic soils, soda lakes)
+#   highland_zone  - Central Highlands (cool, wet, high NDVI)
+#   coastal_zone   - Coastal strip (humid, tropical)
+#   asal_zone      - Arid & Semi-Arid (sparse vegetation, bare rock)
+#   lake_zone      - Lake Victoria Basin (sub-humid, wetland-heavy)
+#   rift_zone      - Rift Valley (savanna, pyroclastic soils, soda lakes)
 #
 regions:
   # ── Zone 1: Central Highlands ─────────────────────────────────────────────

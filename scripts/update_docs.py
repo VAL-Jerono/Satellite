@@ -8,6 +8,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 DOC_PATHS = [
+    ROOT / "markdowns" / "Business_Understanding.md",
     ROOT / "Business_Understanding.md",
     ROOT.parent / "Business_Understanding.md",
 ]

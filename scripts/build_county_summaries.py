@@ -6,7 +6,7 @@ enriched master CSV + zone-stratified LightGBM models.
 
 Outputs (all git-ignored but needed locally for the API):
   data/county_summaries/all_counties.csv
-  data/county_summaries/loro_results.csv   (already present — not touched)
+  data/county_summaries/loro_results.csv   (already present - not touched)
   data/county_summaries/{county_name}.json  (one per county, used by /predict/county)
   data/splits/reference_features.parquet   (used by Evidently drift monitoring)
 
@@ -91,7 +91,7 @@ for zone, model in zone_models.items():
     all_preds[zone_mask] = preds
     print(f"  → {zone}: {zone_mask.sum():,} points inferred")
 
-# Handle any rows with unknown zone — use first available model as fallback
+# Handle any rows with unknown zone - use first available model as fallback
 unknown_mask = (df["climate_zone"] == "unknown").values | \
     ~df["climate_zone"].isin(zone_models.keys()).values
 if unknown_mask.sum() > 0:

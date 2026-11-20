@@ -260,7 +260,7 @@ def pull(
     try:
         ee.Initialize(project=project)
     except Exception:
-        # Credentials missing — use Colab-safe notebook auth
+        # Credentials missing - use Colab-safe notebook auth
         try:
             ee.Authenticate(auth_mode="notebook")
             ee.Initialize(project=project)
@@ -289,7 +289,7 @@ def pull(
             for i in range(len(sub_bboxes))
         )
         if chunks_done and not force:
-            print(f"[Cache] All chunks exist for '{name}' — loading from disk")
+            print(f"[Cache] All chunks exist for '{name}' - loading from disk")
             dfs = [pd.read_csv(CHUNK_DIR / f"chunk_{name}_sub{i}.csv")
                    for i in range(len(sub_bboxes))]
             parts.append(pd.concat(dfs, ignore_index=True))

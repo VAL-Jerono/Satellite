@@ -1,0 +1,37 @@
+# docker/Dockerfile.api
+# ─────────────────────────────────────────────────────────────────
+# CPU-only FastAPI service — Zone-stratified LightGBM + ONNX CNN path preserved
+# Compatible: Render, Railway, Vultr, Fly.io, any Docker host
+# Target: ~500 MB image, <3 s cold start
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# System deps needed by LightGBM (libomp) and OpenCV
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libglib2.0-0 libsm6 libxrender1 libxext6 \
+        libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY api/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# App source
+COPY api/        ./api/
+COPY configs/    ./configs/
+
+# Runtime data — mounted as volumes in docker-compose but baked in for single-container deploys
+COPY models/     ./models/
+COPY data/atlas/ ./data/atlas/
+COPY data/county_summaries/ ./data/county_summaries/
+
+ENV PYTHONPATH=/app
+ENV OMP_NUM_THREADS=2
+ENV MPLCONFIGDIR=/tmp/mpl
+
+EXPOSE 8000
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=25s \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
+
+CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]

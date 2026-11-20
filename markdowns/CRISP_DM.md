@@ -1,4 +1,4 @@
-# CRISP-DM Plan — Kenya Land Readiness Atlas
+# CRISP-DM Plan - Kenya Land Readiness Atlas
 ## Satellite Modeling to LORO F1 ≥ 0.60
 ### *Sub-pipeline of: Household-Guided, Land-Aware Affordable Housing Allocation in Kenya*
 
@@ -12,7 +12,7 @@
 
 ---
 
-## Phase 1 — Business Understanding
+## Phase 1 - Business Understanding
 
 ### 1.1 What We Are Solving
 
@@ -24,7 +24,7 @@ The MILP allocator needs two satellite-derived numbers per county:
 | `flood_risk_fraction` | Share of Settle pixels with high TWI | Equity audit / penalty term |
 
 Without a model that generalises across Kenya's five climate zones, those
-numbers cannot be trusted — especially for ASAL counties (Turkana, Wajir,
+numbers cannot be trusted - especially for ASAL counties (Turkana, Wajir,
 Marsabit), which have the deepest housing vulnerability but were previously
 classified at LORO F1 = 0.26.
 
@@ -56,7 +56,7 @@ full weight.
 
 ---
 
-## Phase 2 — Data Understanding
+## Phase 2 - Data Understanding
 
 ### 2.1 Data Sources
 
@@ -68,7 +68,7 @@ full weight.
 | **USGS SRTM** | Elevation + slope | GEE |
 | **WWF HydroSHEDS 15ACC** | Flow accumulation for TWI | GEE |
 
-### 2.2 Feature Set (23 features total — Week 12 upgrade)
+### 2.2 Feature Set (23 features total - Week 12 upgrade)
 
 | Group | Features | Count |
 |---|---|---|
@@ -111,7 +111,7 @@ full weight.
 
 ---
 
-## Phase 3 — Data Preparation
+## Phase 3 - Data Preparation
 
 ### 3.1 Pipeline Stages
 
@@ -142,9 +142,9 @@ Stage E  Spatial Splits     data/pipeline/spatial_splits.py
 
 ### 3.2 Normalisation Strategy
 
-**Old (broken):** Single global (mean, std) — NDVI of 0.20 gets normalised identically regardless of zone.
+**Old (broken):** Single global (mean, std) - NDVI of 0.20 gets normalised identically regardless of zone.
 
-**New (required):** Zone-stratified normalisation — compute (mean_z, std_z) for each of 5 climate zones.
+**New (required):** Zone-stratified normalisation - compute (mean_z, std_z) for each of 5 climate zones.
 
 ### 3.3 Class Imbalance Handling
 
@@ -155,7 +155,7 @@ Stage E  Spatial Splits     data/pipeline/spatial_splits.py
 
 ---
 
-## Phase 4 — Modelling
+## Phase 4 - Modelling
 
 ### 4.1 Model Progression
 
@@ -184,7 +184,7 @@ Level 3  Temperature Scaling Calibration
 
 ---
 
-## Phase 5 — Evaluation
+## Phase 5 - Evaluation
 
 ### 5.1 Evaluation Protocol
 
@@ -207,13 +207,13 @@ Level 3  Temperature Scaling Calibration
 
 ### 5.3 Critical Confusion Pairs
 
-1. bare ↔ built_up (ASAL — inflates settle_area_km2 if wrong)
-2. cropland ↔ trees (coastal — Farm vs. Protect label)
-3. water ↔ bare (ASAL — dry riverbeds vs. open water)
+1. bare ↔ built_up (ASAL - inflates settle_area_km2 if wrong)
+2. cropland ↔ trees (coastal - Farm vs. Protect label)
+3. water ↔ bare (ASAL - dry riverbeds vs. open water)
 
 ---
 
-## Phase 6 — Deployment
+## Phase 6 - Deployment
 
 ### 6.1 Outputs
 

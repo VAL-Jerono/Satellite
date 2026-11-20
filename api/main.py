@@ -271,19 +271,19 @@ def recommend(
 
     if water_p > 0.35 or flood_risk:
         action   = "protect"
-        rationale= "High hydrologic flood exposure — statutory conservation setback applied."
+        rationale= "High hydrologic flood exposure - statutory conservation setback applied."
     elif tree_p > 0.35 and slope_deg > 15:
         action   = "protect"
-        rationale= "Montane tree canopy on steep terrain (>15°) — watershed erosion buffer."
+        rationale= "Montane tree canopy on steep terrain (>15°) - watershed erosion buffer."
     elif built_p > 0.45:
         action   = "settle"
-        rationale= "Urban/peri-urban fringe confirmed — brownfield infill recommended."
+        rationale= "Urban/peri-urban fringe confirmed - brownfield infill recommended."
     elif crop_p > 0.30 and slope_deg < 10 and not flood_risk:
         action   = "farm"
         rationale= "Productive agricultural parcel on gentle gradient with low flood exposure."
     elif bare_p > 0.35 and not flood_risk:
         action   = "settle"
-        rationale= "Open bare ground on stable slope — high civil engineering buildability."
+        rationale= "Open bare ground on stable slope - high civil engineering buildability."
     else:
         action   = "farm"
         rationale= "Mixed vegetative canopy; smallholder agro-pastoral use recommended."
@@ -583,7 +583,7 @@ def _build_fallback_dossier(req: CopilotRequest) -> str:
 
 #### 1. 🏢 Executive Land Suitability Assessment
 - **Dominant Land Cover:** Classified as **{dom_class}**.
-- **Topographic Constraints:** Terrain slope measured at **{req.slope_deg:.1f}°**. {"⚠️ Exceeds 15° slope threshold — heightened landslide & soil erosion vulnerability." if req.slope_deg > 15 else "✅ Slope within standard construction tolerance (<15°)."}
+- **Topographic Constraints:** Terrain slope measured at **{req.slope_deg:.1f}°**. {"⚠️ Exceeds 15° slope threshold - heightened landslide & soil erosion vulnerability." if req.slope_deg > 15 else "✅ Slope within standard construction tolerance (<15°)."}
 - **Flood Exposure Status:** {"⚠️ High surface flood risk flagged by hydrologic DEM analysis." if req.flood_risk else "✅ Low immediate flood risk identified."}
 
 #### 2. 📜 Statutory Zoning & Regulatory Compliance Check (RAG Engine)

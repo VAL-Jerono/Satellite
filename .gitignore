@@ -25,3 +25,7 @@ dist/
 coverage.xml
 
 # docs/eda/ is intentionally NOT ignored — EDA outputs are git-tracked
+
+# Local archive folder for unused/deprecated files and handouts
+home/
+home/*

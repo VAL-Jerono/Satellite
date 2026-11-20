@@ -1,4 +1,4 @@
-# Kenya Land Readiness Atlas — Growth Record
+# Kenya Land Readiness Atlas - Growth Record
 ### Pipeline State Snapshot · Week 11 → Week 12 Transition · October 2026
 
 ---
@@ -7,7 +7,7 @@
 
 This file is a permanent audit trail. Each week we append a new section recording
 **what we measured**, **what failed**, **what we changed**, and **what the result was**.
-Do not delete old sections — growth only becomes visible across entries.
+Do not delete old sections - growth only becomes visible across entries.
 
 ---
 
@@ -50,7 +50,7 @@ Do not delete old sections — growth only becomes visible across entries.
 | Decision Tree (rule) | 0.4258 | 0.4230 | 0.0397 |
 | LightGBM | 0.5737 | **0.5765** | 0.1841 |
 
-#### Leave-One-Region-Out (LORO) — Mean across all 13 counties:
+#### Leave-One-Region-Out (LORO) - Mean across all 13 counties:
 
 | Model | Mean Accuracy | Mean Macro-F1 |
 |---|---|---|
@@ -96,7 +96,7 @@ Do not delete old sections — growth only becomes visible across entries.
 
 ## 2.3 High Impact: No Building Density Signal
 
-**Problem**: The `built_up` WorldCover class covers everything from iron-sheet slums to formal apartment blocks. The model has zero information about building density, height, or footprint — the exact features Kenya housing contractors need.
+**Problem**: The `built_up` WorldCover class covers everything from iron-sheet slums to formal apartment blocks. The model has zero information about building density, height, or footprint - the exact features Kenya housing contractors need.
 
 **Target fix**: Add Topographic Wetness Index (TWI) from HydroSHEDS + plan for Google Open Buildings v3 density layer.
 

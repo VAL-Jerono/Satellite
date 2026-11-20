@@ -1,0 +1,61 @@
+asal_zone:
+  params:
+    class_weight: balanced
+    colsample_bytree: 0.7417358372223075
+    learning_rate: 0.025048267985764643
+    max_depth: 4
+    min_child_samples: 33
+    n_estimators: 250
+    num_leaves: 61
+    reg_alpha: 0.006406588849827762
+    reg_lambda: 0.5851890791603006
+    subsample: 0.6508443453590949
+  score: 0.3602941664637121
+coastal_zone:
+  params:
+    colsample_bytree: 0.8917120834544586
+    learning_rate: 0.02744639191620145
+    max_depth: 5
+    min_child_samples: 22
+    n_estimators: 100
+    num_leaves: 16
+    reg_alpha: 0.008576197270636566
+    reg_lambda: 0.02071033009787408
+    subsample: 0.7026475035745785
+  score: 0.43947097382477035
+highland_zone:
+  params:
+    colsample_bytree: 0.8786660059873195
+    learning_rate: 0.06530691238450066
+    max_depth: 9
+    min_child_samples: 10
+    n_estimators: 300
+    num_leaves: 20
+    reg_alpha: 1.2388563129707542
+    reg_lambda: 0.06336876378791484
+    subsample: 0.7512933243465517
+  score: 0.45531247654053003
+lake_zone:
+  params:
+    colsample_bytree: 0.9214954063486807
+    learning_rate: 0.02900617058213736
+    max_depth: 10
+    min_child_samples: 37
+    n_estimators: 100
+    num_leaves: 34
+    reg_alpha: 0.19348220773929095
+    reg_lambda: 0.005230477037586685
+    subsample: 0.7990382535091747
+  score: 0.36522072342614564
+rift_zone:
+  params:
+    colsample_bytree: 0.8500209271250222
+    learning_rate: 0.11931949013241878
+    max_depth: 4
+    min_child_samples: 10
+    n_estimators: 100
+    num_leaves: 21
+    reg_alpha: 0.2652843212752739
+    reg_lambda: 0.0031529795324548165
+    subsample: 0.7744865652055684
+  score: 0.5018956551889802

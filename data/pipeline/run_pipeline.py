@@ -165,7 +165,7 @@ def run_band_stats() -> bool:
     print("  [STATS] Recomputing band statistics across all patches ...")
     mean_vec, std_vec, count = compute_dataset_band_stats()
     if count == 0:
-        print("  [STATS] WARN: No patches found yet — skipping stats update")
+        print("  [STATS] WARN: No patches found yet - skipping stats update")
         return False
     stats_path = _ROOT / "data" / "band_stats.json"
     save_band_stats(mean_vec, std_vec, count, out_path=stats_path)
@@ -187,7 +187,7 @@ def run_merge_csv() -> bool:
     for county in ALL_REGIONS:
         county_chunks = sorted(chunk_dir.glob(f"chunk_{county}_sub*.csv"))
         if not county_chunks:
-            print(f"  [MERGE] WARN: No chunks for {county} — skipping")
+            print(f"  [MERGE] WARN: No chunks for {county} - skipping")
             continue
         dfs = []
         for cp in county_chunks:
@@ -378,12 +378,12 @@ def run_pipeline(
         if stage_filter and stage_filter != stage:
             continue
         if stage == "patch_export" and skip_patch_export:
-            print("[Pipeline] Skipping patch_export (SKIP_PATCH_EXPORT=True) — set to False for CNN data prep")
+            print("[Pipeline] Skipping patch_export (SKIP_PATCH_EXPORT=True) - set to False for CNN data prep")
             continue
 
         pending = [c for c in target_counties if led.county_stage(c, stage) != "done"]
         if not pending:
-            print(f"[Pipeline] All counties done for stage '{stage}' — skipping")
+            print(f"[Pipeline] All counties done for stage '{stage}' - skipping")
             continue
 
         print(f"\n[Pipeline] === Stage: {stage} | {len(pending)} counties remaining ===")
@@ -393,7 +393,7 @@ def run_pipeline(
             print(f"\n[Pipeline] Batch: {batch}")
             for county in batch:
                 if led.county_stage(county, stage) == "done" and not force:
-                    print(f"  [Pipeline] {county}/{stage} already done — skip")
+                    print(f"  [Pipeline] {county}/{stage} already done - skip")
                     continue
                 led.mark_in_progress(county, stage)
                 if stage == "ee_pull":
@@ -403,7 +403,7 @@ def run_pipeline(
                 if ok:
                     led.mark_done(county, stage)
                 else:
-                    print(f"  [Pipeline] WARN: {county}/{stage} failed — will retry next run")
+                    print(f"  [Pipeline] WARN: {county}/{stage} failed - will retry next run")
 
     if stage_filter and stage_filter not in ("ee_pull", "patch_export"):
         pass
@@ -422,7 +422,7 @@ def run_pipeline(
             if ok:
                 led.set_global("band_stats", "fresh")
         else:
-            print("\n[Pipeline] Band stats are fresh — skipping recompute")
+            print("\n[Pipeline] Band stats are fresh - skipping recompute")
 
     # ── Stage 4: Merge CSV ────────────────────────────────────────────────────
     if not stage_filter or stage_filter == "merge_csv":

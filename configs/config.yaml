@@ -8,10 +8,10 @@ training:
   patch_size: 64              # pixels (64×64 at 10 m = 640 m tile)
   batch_size: 64              # increased: larger batches → more stable gradients
   epochs: 40                  # increased: CNNs need 20–35 epochs to converge
-  lr: 3.0e-4                  # slightly lower LR — warmup scheduler handles ramp-up
+  lr: 3.0e-4                  # slightly lower LR - warmup scheduler handles ramp-up
   weight_decay: 1.0e-4
   seed: 42
-  num_workers: 0              # 0 = main process only — avoids FUSE deadlock in Colab
+  num_workers: 0              # 0 = main process only - avoids FUSE deadlock in Colab
   mixed_precision: true       # fp16 on GPU, ignored on CPU
   gradient_accumulation: 1    # 1 = no accumulation; patches cached locally so reads are fast
 

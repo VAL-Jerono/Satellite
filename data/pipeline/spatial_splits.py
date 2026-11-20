@@ -63,8 +63,8 @@ def build_splits(project: str = "propertysatellite"):
     Build spatial-block CV + LORO + LOZO splits.
 
     Data source priority:
-      1. manifest.csv  — when .npy patches are present locally (CNN workflow)
-      2. master CSV    — always has lon/lat from EE pull; used for tabular ML
+      1. manifest.csv  - when .npy patches are present locally (CNN workflow)
+      2. master CSV    - always has lon/lat from EE pull; used for tabular ML
     """
     df = None
 
@@ -77,7 +77,7 @@ def build_splits(project: str = "propertysatellite"):
                 df = tmp
                 print(f"  [SPLITS] Using patch manifest: {len(df)} patches")
         except Exception as exc:
-            print(f"  [SPLITS] WARN: could not read manifest.csv ({exc}) — falling back to master CSV")
+            print(f"  [SPLITS] WARN: could not read manifest.csv ({exc}) - falling back to master CSV")
 
     # ── Fall back to master CSV (tabular ML splits) ───────────────────────────
     if df is None:

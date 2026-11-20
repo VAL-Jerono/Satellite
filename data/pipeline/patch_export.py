@@ -15,7 +15,7 @@ Run from repo root:
 """
 
 import argparse
-# NOTE: `import ee` is deferred to inside functions — module imports cleanly
+# NOTE: `import ee` is deferred to inside functions - module imports cleanly
 # without earthengine-api being available in the environment.
 import numpy as np
 import pandas as pd
@@ -99,7 +99,7 @@ def export_patches(project: str, resume: bool = True, workers: int = 8):
     try:
         ee.Initialize(project=project)
     except Exception:
-        # Credentials not yet set — use Colab-safe notebook auth
+        # Credentials not yet set - use Colab-safe notebook auth
         try:
             auth_mode = "notebook"  # correct mode for Colab interactive cells
             ee.Authenticate(auth_mode=auth_mode)
@@ -165,7 +165,7 @@ def export_patches(project: str, resume: bool = True, workers: int = 8):
                 if (i + 1) % 100 == 0 or (i + 1) == len(futures):
                     print(f"  {i+1}/{len(futures)} downloaded")
 
-    # Rebuild manifest index — check both local disk AND Google Drive paths.
+    # Rebuild manifest index - check both local disk AND Google Drive paths.
     # This ensures the manifest has valid filenames even when patches live on Drive.
     manifest_records = []
     drive_patches_mfst = Path("/content/drive/MyDrive/land_atlas_baseline/patches")

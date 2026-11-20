@@ -157,7 +157,7 @@ def train_fold(
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=TC["lr"], weight_decay=TC["weight_decay"])
 
-    # Warmup for first 3 epochs, then cosine decay — critical for CNN convergence
+    # Warmup for first 3 epochs, then cosine decay - critical for CNN convergence
     # Without warmup, CosineAnnealingLR starts decaying LR from epoch 1 which
     # prevents the model from escaping random-initialization loss plateau.
     warmup_epochs = min(3, max(1, epochs // 10))
@@ -178,7 +178,7 @@ def train_fold(
     ga_steps = TC["gradient_accumulation"]
     best_mf1, best_ckpt = -1.0, None
     # Increased patience: CNN needs ~15+ epochs to escape random-init plateau on Drive FUSE.
-    # patience=7 fires before any learning can occur — now set to 15.
+    # patience=7 fires before any learning can occur - now set to 15.
     patience_max, patience_ctr = 15, 0
     history = []
 

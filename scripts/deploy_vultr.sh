@@ -1,6 +1,6 @@
 #!/bin/bash
 # ─────────────────────────────────────────────────────────────
-# deploy_vultr.sh  — Deploy Kenya Land Readiness Atlas to Vultr
+# deploy_vultr.sh  - Deploy Kenya Land Readiness Atlas to Vultr
 # Usage: bash scripts/deploy_vultr.sh
 # ─────────────────────────────────────────────────────────────
 set -e
@@ -10,7 +10,7 @@ REMOTE_USER="root"
 REMOTE_DIR="/opt/land-atlas"
 SSH_KEY="${SSH_KEY:-~/.ssh/id_rsa}"
 
-echo "🛰️  Kenya Land Readiness Atlas — Vultr Deployment"
+echo "🛰️  Kenya Land Readiness Atlas - Vultr Deployment"
 echo "   Server: $VULTR_IP"
 echo ""
 

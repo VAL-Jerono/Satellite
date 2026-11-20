@@ -62,7 +62,7 @@ class PatchDataset(Dataset):
 
         # ── Local /tmp cache: convert slow Drive FUSE reads → fast local reads ──
         # On first access the patch is copied from Drive to /tmp/sat_patches/.
-        # Subsequent epochs read from local SSD — 10–50× faster than Drive FUSE.
+        # Subsequent epochs read from local SSD - 10–50× faster than Drive FUSE.
         cached = _LOCAL_PATCH_CACHE / fname.name
         if cached.exists():
             fname = cached
@@ -79,7 +79,7 @@ class PatchDataset(Dataset):
             else:
                 fname = None
         else:
-            # File exists at manifest path — stage to cache
+            # File exists at manifest path - stage to cache
             try:
                 shutil.copy2(fname, cached)
                 fname = cached
@@ -211,6 +211,6 @@ def warm_patch_cache(split_csvs: list, max_patches: int = 30000, verbose: bool =
             print(f"  [cache] staged {staged} patches so far…")
 
     if verbose:
-        print(f"  [cache] Done — staged={staged}, already_cached={skipped}, missing={missing}")
+        print(f"  [cache] Done - staged={staged}, already_cached={skipped}, missing={missing}")
         print(f"  [cache] /tmp/sat_patches now has {len(list(_LOCAL_PATCH_CACHE.glob('*.npy')))} patches")
     return staged
