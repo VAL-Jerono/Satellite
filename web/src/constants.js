@@ -30,7 +30,7 @@ export const ACTION_COLORS = {
 
 export const ACTION_META = {
   settle: {
-    label: "SETTLE — BUILDOUT",
+    label: "SETTLE - BUILDOUT",
     badge: "SETTLE",
     color: "#3b82f6",
     bg: "bg-blue-500/10",
@@ -38,7 +38,7 @@ export const ACTION_META = {
     text: "text-blue-400",
   },
   farm: {
-    label: "FARM — AGRICULTURE",
+    label: "FARM - AGRICULTURE",
     badge: "FARM",
     color: "#10b981",
     bg: "bg-emerald-500/10",
@@ -46,7 +46,7 @@ export const ACTION_META = {
     text: "text-emerald-400",
   },
   protect: {
-    label: "PROTECT — CONSERVATION",
+    label: "PROTECT - CONSERVATION",
     badge: "PROTECT",
     color: "#f59e0b",
     bg: "bg-amber-500/10",
